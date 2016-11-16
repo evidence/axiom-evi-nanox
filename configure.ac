@@ -3,6 +3,9 @@ AC_LANG([C++])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], ["$0 $@"], [Configure line])
 
+# Check for pkg-config
+PKG_PROG_PKG_CONFIG
+
 # Environment
 AC_CANONICAL_BUILD
 AC_CANONICAL_SYSTEM
@@ -74,6 +77,23 @@ AS_IF([test "$enable_memtracker" = xyes],[
 # Set compiler default flags
 : ${CFLAGS=""}
 : ${CXXFLAGS=""}
+
+# AXIOM
+AC_ARG_WITH(axiomhome,
+[AS_HELP_STRING([--with-axiomhome=PATH],
+                [specify root directory of AXIOM project])],
+  [
+    # Check if the user provided a valid PATH
+    AS_IF([test -d "$withval"],[
+      with_axiomhome=$withval
+      gasnet=yes
+      gasnet_path_provided=yes
+    ],[
+      with_axiomhome=~/axiom-evi
+    ])dnl
+  ],[
+      with_axiomhome=~/axiom-evi
+  ])
 
 # ------------------
 # Check for programs
@@ -333,6 +353,11 @@ AC_CONFIG_FILES([
                  tests/gens/resiliency-generator
        ])
 
+AC_CONFIG_FILES([
+		 nanox-debug.pc:nanox-debug.pc.in
+		 nanox-performance.pc:nanox-performance.pc.in
+],[],[])
+
 AC_OUTPUT
 
 gcc_builtins_used="unknown"
@@ -366,6 +391,6 @@ Task resiliency:          $(ax_check_enabled $resiliency)"])
 
 AS_IF([test "$gasnet_available_conduits" != ""],[
    AS_ECHO(["\
-Cluster/GASNet conduits:  $gasnet_available_conduits"])
+Cluster/GASNet conduits: $gasnet_available_conduits"])
 ])
 

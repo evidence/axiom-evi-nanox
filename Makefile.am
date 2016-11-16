@@ -28,6 +28,17 @@ ACLOCAL_AMFLAGS=-I m4
 REMOVE_LIBS = \
 	      libnanox-ss\
 	      $(END)
+#######
+##
+#######
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = nanox-debug.pc nanox-performance.pc
+
+DISTCLEANFILES = $(pkgconfig_DATA)
+EXTRA_DIST += nanox-debug.pc.in nanox-performance.pc.in
+
+#######
 
 remove-old-libraries:
 	@for oldlib in $(REMOVE_LIBS); do \

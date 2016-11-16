@@ -102,14 +102,15 @@ AS_IF([test "x$gasnet" = xyes],[
   #AX_SILENT_MODE(on)
 
   # Check available GASNet conduits that are supported.
-  # Supported conduits: smp, udp, mpi, ibv, mxm, aries
+  # Supported conduits: smp, udp, mpi, ibv, mxm, aries, axiom
 
   # Special requirements for supported conduits
-  # SMP: no special requirements
-  # UDP: link with libamudp.a
-  # MPI: link with libammpi.a
-  # IBV: link with infiniband sys libraries
-  #      define GASNET_CONDUIT_IBV
+  # SMP:   no special requirements
+  # UDP:   link with libamudp.a
+  # MPI:   link with libammpi.a
+  # IBV:   link with infiniband sys libraries
+  #        define GASNET_CONDUIT_IBV
+  # AXIOM: link with libaxiom_user_api.a and libaxiom_run_api.a
   # MPI and IBV conduits require an available MPI
   # compiler
 
@@ -117,6 +118,10 @@ AS_IF([test "x$gasnet" = xyes],[
   _AX_CHECK_GASNET_CONDUIT(smp,$CXX)
   _AX_CHECK_GASNET_CONDUIT(udp,$CXX,-lamudp)
   _AX_CHECK_GASNET_CONDUIT(aries,$CXX)
+  ##_AX_CHECK_GASNET_CONDUIT(axiom,$target_alias-g++,-L/home/massy/axiom-evi/axiom-evi-nic/axiom_user_library -L/home/massy/axiom-evi/axiom-evi-apps/axiom-run/lib -laxiom_user_api -laxiom_run_api)
+  #_AX_CHECK_GASNET_CONDUIT(axiom,$CXX,-L/home/massy/axiom-evi/axiom-evi-nic/axiom_user_library -L/home/massy/axiom-evi/axiom-evi-apps/axiom-run/lib -laxiom_user_api -laxiom_run_api)
+  #_AX_CHECK_GASNET_CONDUIT(axiom,$CXX,-L$with_axiomhome/axiom-evi-nic/axiom_user_library -L$with_axiomhome/axiom-evi-apps/axiom-run/lib -laxiom_user_api -laxiom_run_api)
+  _AX_CHECK_GASNET_CONDUIT(axiom,$CXX,-L$with_axiomhome/output/lib -laxiom_user_api -laxiom_run_api)
 
   # set the appropiate LDFLAGS for conduits that require MPI
   AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $mpilib])
@@ -168,7 +173,7 @@ GASNet is linked with.
 
 ])dnl if gasnet
 
-m4_foreach_w([conduit_name],[smp udp mpi ibv mxm aries],[
+m4_foreach_w([conduit_name],[smp udp mpi ibv mxm aries axiom],[
   _AX_CONDUIT_SUBST(conduit_name)
 ])
 
@@ -177,7 +182,7 @@ m4_foreach_w([conduit_name],[smp udp mpi ibv mxm aries],[
 # _AX_CHECK_GASNET_CONDUIT(name [, compiler [, libraries [, preprocessor flags ]]])
 # Helper function that checks for the availability of a single GASNet conduit
 # Parameters:
-# $1 - Conduit name. Expected values: {smp, udp, mpi, ibv, aries}
+# $1 - Conduit name. Expected values: {smp, udp, mpi, ibv, aries, axiom}
 # $2 - Required compiler. Some conduits must be compiled differently (e.g.: mpi must be compiled with MPI compiler)
 # $3 - Library requirements (optional). Special library requirements to link with this conduit.
 # $4 - Additional preprocessor flags (optional).
