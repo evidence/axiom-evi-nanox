@@ -121,7 +121,7 @@ AS_IF([test "x$gasnet" = xyes],[
   ##_AX_CHECK_GASNET_CONDUIT(axiom,$target_alias-g++,-L/home/massy/axiom-evi/axiom-evi-nic/axiom_user_library -L/home/massy/axiom-evi/axiom-evi-apps/axiom-run/lib -laxiom_user_api -laxiom_run_api)
   #_AX_CHECK_GASNET_CONDUIT(axiom,$CXX,-L/home/massy/axiom-evi/axiom-evi-nic/axiom_user_library -L/home/massy/axiom-evi/axiom-evi-apps/axiom-run/lib -laxiom_user_api -laxiom_run_api)
   #_AX_CHECK_GASNET_CONDUIT(axiom,$CXX,-L$with_axiomhome/axiom-evi-nic/axiom_user_library -L$with_axiomhome/axiom-evi-apps/axiom-run/lib -laxiom_user_api -laxiom_run_api)
-  _AX_CHECK_GASNET_CONDUIT(axiom,$CXX,-L$with_axiomhome/output/lib -laxiom_user_api -laxiom_run_api)
+  _AX_CHECK_GASNET_CONDUIT(axiom,$CXX,-L$with_axiomhome/output/staging/usr/lib -laxiom_allocator -levi_lmm -laxiom_user_api -laxiom_run_api,[],[-Wl,-T$with_axiomhome/output/target/usr/axiom-evi-allocator-lib/xs_map64.lds])
 
   # set the appropiate LDFLAGS for conduits that require MPI
   AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $mpilib])
@@ -186,6 +186,7 @@ m4_foreach_w([conduit_name],[smp udp mpi ibv mxm aries axiom],[
 # $2 - Required compiler. Some conduits must be compiled differently (e.g.: mpi must be compiled with MPI compiler)
 # $3 - Library requirements (optional). Special library requirements to link with this conduit.
 # $4 - Additional preprocessor flags (optional).
+# $5 - Other linker flags required to produce an executable
 AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
 [
   AS_VAR_PUSHDEF([conduit_available],[gasnet_$1_available])
@@ -193,6 +194,7 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
   AS_VAR_PUSHDEF([conduit_libs], [gasnet_$1_libs])
 
   conduit_prereq_libs="$PTHREAD_LIBS -lrt $3"
+  conduit_other_flags="$5"
   conduit_inc="-isystem $gasnetinc -I$gasnetinc/$1-conduit $4"
 
   AX_VAR_PUSHVALUE([CXX],[$2])
@@ -218,7 +220,7 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
                   [gasnet-$1-par],
                   [conduit_available=yes],
                   [conduit_available=no],
-                  [$conduit_prereq_libs])
+                  [$conduit_prereq_libs $conduit_other_flags])
     ])
   ])
 
