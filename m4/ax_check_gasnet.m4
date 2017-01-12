@@ -121,7 +121,7 @@ AS_IF([test "x$gasnet" = xyes],[
   ##_AX_CHECK_GASNET_CONDUIT(axiom,$target_alias-g++,-L/home/massy/axiom-evi/axiom-evi-nic/axiom_user_library -L/home/massy/axiom-evi/axiom-evi-apps/axiom-run/lib -laxiom_user_api -laxiom_run_api)
   #_AX_CHECK_GASNET_CONDUIT(axiom,$CXX,-L/home/massy/axiom-evi/axiom-evi-nic/axiom_user_library -L/home/massy/axiom-evi/axiom-evi-apps/axiom-run/lib -laxiom_user_api -laxiom_run_api)
   #_AX_CHECK_GASNET_CONDUIT(axiom,$CXX,-L$with_axiomhome/axiom-evi-nic/axiom_user_library -L$with_axiomhome/axiom-evi-apps/axiom-run/lib -laxiom_user_api -laxiom_run_api)
-  _AX_CHECK_GASNET_CONDUIT(axiom,$CXX,-L$with_axiomhome/output/staging/usr/lib -laxiom_allocator -levi_lmm -laxiom_user_api -laxiom_run_api,[],[-Wl,-T$with_axiomhome/output/target/usr/axiom-evi-allocator-lib/xs_map64.lds])
+  _AX_CHECK_GASNET_CONDUIT(axiom,$CXX,-L$with_axiomhome/output/staging/usr/lib -laxiom_allocator -levi_lmm -laxiom_user_api -laxiom_run_api -laxiom_init_api,[-I$with_axiomhome/output/staging/usr/include/axiom],[-Wl,-T$with_axiomhome/output/target/usr/axiom-evi-allocator-lib/xs_map64.lds])
 
   # set the appropiate LDFLAGS for conduits that require MPI
   AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $mpilib])
