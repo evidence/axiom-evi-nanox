@@ -426,7 +426,9 @@ class InstrumentationExtrae: public Instrumentation
             OMPItrace_fini();
          }
 
-         if ( sys.usingCluster() ) {
+	 /* avoid extrae merge */
+         char *avoid_merge = getenv("NX_EXTRAE_AVOID_MERGE");
+         if ( sys.usingCluster() && avoid_merge == NULL) {
             copyFilesToMaster();
          }
       }
