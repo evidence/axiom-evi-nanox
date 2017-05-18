@@ -32,6 +32,9 @@ TARGET_ID='aarch64-linux-gnu'
 
 export PATH=$HOST_DIR/usr/bin:$PATH
 
+CXXFLAGS="--sysroot=${ROOTFS}"
+CFLAGS="--sysroot=${ROOTFS}"
+
 else
 OUTPUT_DIR=$AXIOMHOME/output
 TARGET_DIR=$(realpath ${OUTPUT_DIR}/target)
