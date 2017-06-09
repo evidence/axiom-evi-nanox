@@ -9,14 +9,14 @@ Homepage: <insert the upstream URL, if relevant>
 #Vcs-Browser: http://anonscm.debian.org/?p=collab-maint/axiom-apps.git;a=summary
 
 Package: nanox
-Architecture: any
+Architecture: all
 Depends: ${shlibs:Depends}, ${misc:Depends}, nanox-performance (= ${binary:Version}), nanox-debug (= ${binary:Version}), nanox-instrumentation (= ${binary:Version})
 Description: <insert up to 60 chars description>
  <insert long description, indented with spaces>
 
 Package: nanox-dev
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, nanox (= ${binary:Version}), nanox-performance-dev (= ${binary:Version}), nanox-debug-dev (= ${binary:Version}), nanox-instrumentation-dev (= ${binary:Version})
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, nanox (= ${binary:Version}), nanox-performance-dev (= ${binary:Version}), nanox-debug-dev (= ${binary:Version}), nanox-instrumentation-dev (= ${binary:Version}), gasnet-dev
 Description: <insert up to 60 chars description>
  <insert long description, indented with spaces>
 
@@ -46,12 +46,12 @@ Description: <insert up to 60 chars description>
 
 Package: nanox-instrumentation
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, extrae
 Description: <insert up to 60 chars description>
  <insert long description, indented with spaces>
 
 Package: nanox-instrumentation-dev
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, extrae-dev
 Description: <insert up to 60 chars description>
  <insert long description, indented with spaces>
