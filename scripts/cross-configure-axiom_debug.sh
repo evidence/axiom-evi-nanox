@@ -11,41 +11,36 @@ done
     exit 255;
 }
 
-#AXIOMEVI_DIR=$AXIOMHOME
-#AXIOMEVI_GASNET_DIR=$AXIOMEVI_DIR/axiom-evi-gasnet
-#AXIOMEVI_OMPSS_DIR=$AXIOMEVI_DIR/ompss
-#AXIOMEVI_BR_DIR=$AXIOMEVI_DIR/axiom-evi-buildroot
-#AXIOMEVI_BR_HOST_DIR=$AXIOMEVI_BR_DIR/../output/host
-#AXIOMEVI_BR_TRG_DIR=$AXIOMEVI_BR_DIR/../output/target
-#
-#OUTPUT=$AXIOMHOME/output
+if [ "$FS" = "seco" ]; then
 
-if [ X"$P" = X1 ]; then
+    TARGET_DIR=$(realpath ${ROOTFS})
+#    SYSROOT_DIR=$(realpath ${LINARO}/sysroot)
+    SYSROOT_DIR=$(realpath ${ROOTFS})
+    HOST_DIR=$(realpath ${LINARO}/host)
+        
+    BUILD_ID='x86_64-unknown-linux-gnu'
+    TARGET_ID='aarch64-linux-gnu'
+        
+    [ -z "$PREFIX" ] && PREFIX=$HOST_DIR
 
-TARGET_DIR=$(realpath ${ROOTFS})
-#SYSROOT_DIR=$(realpath ${LINARO}/staging)
-SYSROOT_DIR=$(realpath ${ROOTFS})
-HOST_DIR=$(realpath ${LINARO}/host)
-
-BUILD_ID='x86_64-unknown-linux-gnu'
-TARGET_ID='aarch64-linux-gnu'
-
-export PATH=$HOST_DIR/usr/bin:$PATH
-
+    export PATH=$PATH:$HOST_DIR/usr/bin
+        
 else
-OUTPUT_DIR=$AXIOMHOME/output
-TARGET_DIR=$(realpath ${OUTPUT_DIR}/target)
-SYSROOT_DIR=$(realpath ${OUTPUT_DIR}/staging)
-HOST_DIR=$(realpath ${OUTPUT_DIR}/host)
 
-BUILD_ID='x86_64-unknown-linux-gnu'
-TARGET_ID='aarch64-buildroot-linux-gnu'
+    OUTPUT_DIR=$AXIOMHOME/output
+    TARGET_DIR=$(realpath ${OUTPUT_DIR}/target)
+    SYSROOT_DIR=$(realpath ${OUTPUT_DIR}/staging)
+    HOST_DIR=$(realpath ${OUTPUT_DIR}/host)
 
-CC="$HOST_DIR/usr/bin/aarch64-buildroot-linux-gnu-gcc" ; export CC
-CXX="$HOST_DIR/usr/bin/aarch64-buildroot-linux-gnu-g++" ; export CXX
+    BUILD_ID='x86_64-unknown-linux-gnu'
+    TARGET_ID='aarch64-buildroot-linux-gnu'
+
+    CC="$HOST_DIR/usr/bin/aarch64-buildroot-linux-gnu-gcc" ; export CC
+    CXX="$HOST_DIR/usr/bin/aarch64-buildroot-linux-gnu-g++" ; export CXX
+
+    [ -z "$PREFIX" ] && PREFIX=$SYSROOT_DIR
+
 fi
-
-[ -z "$PREFIX" ] && PREFIX=$SYSROOT_DIR
 
 #../configure --prefix=$OUTPUT 
 ../configure --prefix=$PREFIX \
