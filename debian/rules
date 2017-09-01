@@ -59,7 +59,9 @@ binary-arch: make-changelog
 	dh_compress
 	dh_fixperms
 
-#	dh_strip
+	dh_strip -pnanox-performance
+	dh_strip -pnanox-debug --dbg-package=nanox-debug-dbg
+	dh_strip -pnanox-instrumentation
 	PATH=$(LINARO)/host/usr/bin:$(PATH) dh_makeshlibs
 	dh_shlibdeps  --sysroot=$(ROOTFS)
 	dh_installdeb

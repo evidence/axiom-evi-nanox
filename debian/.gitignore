@@ -27,6 +27,15 @@ nanox-performance.postinst.debhelper
 nanox-performance.postrm.debhelper
 nanox-performance.substvars
 nanox-performance/
+nanox-debug-dbg.debhelper.log
+nanox-debug-dbg.substvars
+nanox-debug-dbg/
+nanox-instrumentation-dbg.debhelper.log
+nanox-instrumentation-dbg.substvars
+nanox-instrumentation-dbg/
+nanox-performance-dbg.debhelper.log
+nanox-performance-dbg.substvars
+nanox-performance-dbg/
 nanox.debhelper.log
 nanox.substvars
 nanox/

@@ -38,6 +38,12 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: <insert up to 60 chars description>
  <insert long description, indented with spaces>
 
+Package: nanox-debug-dbg
+Architecture: any
+Depends: nanox-debug (= ${binary:Version}), ${misc:Depends}
+Description: <insert up to 60 chars description> debug symbols
+ <insert long description, indented with spaces> debug symbols
+
 Package: nanox-debug-dev
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
