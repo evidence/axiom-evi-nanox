@@ -26,6 +26,12 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: <insert up to 60 chars description>
  <insert long description, indented with spaces>
 
+Package: nanox-performance-dbg
+Architecture: any
+Depends: nanox-performance (= ${binary:Version}), ${misc:Depends}
+Description: <insert up to 60 chars description> debug symbols
+ <insert long description, indented with spaces> debug symbols
+
 Package: nanox-performance-dev
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
@@ -55,6 +61,12 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, extrae
 Description: <insert up to 60 chars description>
  <insert long description, indented with spaces>
+
+Package: nanox-instrumentation-dbg
+Architecture: any
+Depends: nanox-instrumentation (= ${binary:Version}), ${misc:Depends}
+Description: <insert up to 60 chars description> debug symbols
+ <insert long description, indented with spaces> debug symbols
 
 Package: nanox-instrumentation-dev
 Architecture: any

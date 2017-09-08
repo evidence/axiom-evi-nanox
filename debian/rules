@@ -14,7 +14,7 @@ build-indep:
 
 binary: binary-arch binary-indep
 
-binary-arch: make-changelog
+binary-arch: make-changelog init-install
 	dh_testroot
 	dh_prep
 	dh_installdirs
@@ -52,16 +52,16 @@ binary-arch: make-changelog
 	dh_gconf
 	dh_icons
 	dh_perl
-	dh_usrlocal
+#	dh_usrlocal
 
 	dh_link
 	dh_installxfonts
 	dh_compress
 	dh_fixperms
 
-	dh_strip -pnanox-performance
+	dh_strip -pnanox-performance --dbg-package=nanox-performance-dbg
 	dh_strip -pnanox-debug --dbg-package=nanox-debug-dbg
-	dh_strip -pnanox-instrumentation
+	dh_strip -pnanox-instrumentation --dbg-package=nanox-instrumentation-dbg
 	PATH=$(LINARO)/host/usr/bin:$(PATH) dh_makeshlibs
 	dh_shlibdeps  --sysroot=$(ROOTFS)
 	dh_installdeb
@@ -71,10 +71,45 @@ binary-arch: make-changelog
 
 binary-indep:
 
-clean: clean-changelog
+clean: clean-changelog clean-install
 	dh_testdir
 #	make clean
 	dh_clean
+
+#
+# clean/init-install
+#
+
+init-install:
+ifeq ($(FS),x86)
+	ln -sf $(DEBIAN_DIR)/nanox-debug-dev.install.x86 $(DEBIAN_DIR)/nanox-debug-dev.install
+	ln -sf $(DEBIAN_DIR)/nanox-debug.install.x86 $(DEBIAN_DIR)/nanox-debug.install
+	ln -sf $(DEBIAN_DIR)/nanox-dev.install.x86 $(DEBIAN_DIR)/nanox-dev.install
+	ln -sf $(DEBIAN_DIR)/nanox-instrumentation-dev.install.x86 $(DEBIAN_DIR)/nanox-instrumentation-dev.install
+	ln -sf $(DEBIAN_DIR)/nanox-instrumentation.install.x86 $(DEBIAN_DIR)/nanox-instrumentation.install
+	ln -sf $(DEBIAN_DIR)/nanox-performance-dev.install.x86 $(DEBIAN_DIR)/nanox-performance-dev.install
+	ln -sf $(DEBIAN_DIR)/nanox-performance.install.x86 $(DEBIAN_DIR)/nanox-performance.install
+	ln -sf $(DEBIAN_DIR)/nanox.install.x86 $(DEBIAN_DIR)/nanox.install
+else
+	ln -sf $(DEBIAN_DIR)/nanox-debug-dev.install.other $(DEBIAN_DIR)/nanox-debug-dev.install
+	ln -sf $(DEBIAN_DIR)/nanox-debug.install.other $(DEBIAN_DIR)/nanox-debug.install
+	ln -sf $(DEBIAN_DIR)/nanox-dev.install.other $(DEBIAN_DIR)/nanox-dev.install
+	ln -sf $(DEBIAN_DIR)/nanox-instrumentation-dev.install.other $(DEBIAN_DIR)/nanox-instrumentation-dev.install
+	ln -sf $(DEBIAN_DIR)/nanox-instrumentation.install.other $(DEBIAN_DIR)/nanox-instrumentation.install
+	ln -sf $(DEBIAN_DIR)/nanox-performance-dev.install.other $(DEBIAN_DIR)/nanox-performance-dev.install
+	ln -sf $(DEBIAN_DIR)/nanox-performance.install.other $(DEBIAN_DIR)/nanox-performance.install
+	ln -sf $(DEBIAN_DIR)/nanox.install.other $(DEBIAN_DIR)/nanox.install
+endif
+
+clean-install:
+	rm -f $(DEBIAN_DIR)/nanox-debug-dev.install
+	rm -f $(DEBIAN_DIR)/nanox-debug.install
+	rm -f $(DEBIAN_DIR)/nanox-dev.install
+	rm -f $(DEBIAN_DIR)/nanox-instrumentation-dev.install
+	rm -f $(DEBIAN_DIR)/nanox-instrumentation.install
+	rm -f $(DEBIAN_DIR)/nanox-performance-dev.install
+	rm -f $(DEBIAN_DIR)/nanox-performance.install
+	rm -f $(DEBIAN_DIR)/nanox.install
 
 #
 # changelog

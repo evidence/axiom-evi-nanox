@@ -11,6 +11,8 @@ done
     exit 255;
 }
 
+export LDFLAGS=-Wl,--build-id=uuid
+
 ../configure --prefix=$PREFIX \
 	     --with-gasnet \
 	     --with-gasnet-include=/usr/local/include/performance \

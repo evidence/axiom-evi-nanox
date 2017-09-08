@@ -42,6 +42,8 @@ else
 
 fi
 
+export LDFLAGS=-Wl,--build-id=uuid
+
 #../configure --prefix=$OUTPUT 
 ../configure --prefix=$PREFIX \
 	     --build=$BUILD_ID --host=$TARGET_ID --target=$TARGET_ID \
