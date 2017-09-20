@@ -40,3 +40,11 @@ nanox.debhelper.log
 nanox.substvars
 nanox/
 tmp/
+nanox-debug-dev.install
+nanox-debug.install
+nanox-dev.install
+nanox-instrumentation-dev.install
+nanox-instrumentation.install
+nanox-performance-dev.install
+nanox-performance.install
+nanox.install
