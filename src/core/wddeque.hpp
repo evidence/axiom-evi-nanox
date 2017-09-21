@@ -36,7 +36,7 @@ inline WDDeque::WDDeque( bool enableDeviceCounter ) : _dq(), _lock(), _nelems(0)
    if ( _deviceCounter ) {
       const DeviceList &devs = sys.getSupportedDevices();
       for ( DeviceList::const_iterator it = devs.begin(); it != devs.end(); ++it ) {
-         _ndevs.insert( std::make_pair<const Device*, Atomic<unsigned int> >( *it, 0 ) );
+	_ndevs.insert( std::make_pair( *it, Atomic<unsigned int>(0) ) );
       }
    }
 }
@@ -534,7 +534,7 @@ inline WDPriorityQueue<T>::WDPriorityQueue( bool enableDeviceCounter, bool optim
    if ( _deviceCounter ) {
       const DeviceList &devs = sys.getSupportedDevices();
       for ( DeviceList::const_iterator it = devs.begin(); it != devs.end(); ++it ) {
-         _ndevs.insert( std::make_pair<const Device*, Atomic<unsigned int> >( *it, 0 ) );
+	_ndevs.insert( std::make_pair( *it, Atomic<unsigned int>(0) ) );
       }
    }
 }
