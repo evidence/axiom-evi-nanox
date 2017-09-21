@@ -21,10 +21,7 @@
 #define _NANOS_OMP_H_
 
 #include "nanos.h"
-#include "nanos_reduction.h"
 #include "nanos_atomic.h"
-
-typedef void * nanos_cpu_set_t;
 
 typedef enum nanos_omp_sched_t {
    nanos_omp_sched_static = 1,
@@ -56,12 +53,12 @@ NANOS_API_DECL(nanos_err_t, nanos_omp_get_schedule, ( nanos_omp_sched_t *kind, i
 NANOS_API_DECL(int, nanos_omp_get_num_threads_next_parallel, ( int threads_requested ));
 
 NANOS_API_DECL(void, nanos_omp_get_process_mask,( nanos_cpu_set_t cpu_set ));
-NANOS_API_DECL(int, nanos_omp_set_process_mask,( const nanos_cpu_set_t cpu_set ));
-NANOS_API_DECL(void, nanos_omp_add_process_mask,( const nanos_cpu_set_t cpu_set ));
+NANOS_API_DECL(int, nanos_omp_set_process_mask,( const_nanos_cpu_set_t cpu_set ));
+NANOS_API_DECL(void, nanos_omp_add_process_mask,( const_nanos_cpu_set_t cpu_set ));
 
 NANOS_API_DECL(void, nanos_omp_get_active_mask,( nanos_cpu_set_t cpu_set ));
-NANOS_API_DECL(int, nanos_omp_set_active_mask,( const nanos_cpu_set_t cpu_set ));
-NANOS_API_DECL(void, nanos_omp_add_active_mask,( const nanos_cpu_set_t cpu_set ));
+NANOS_API_DECL(int, nanos_omp_set_active_mask,(  const_nanos_cpu_set_t cpu_set ));
+NANOS_API_DECL(void, nanos_omp_add_active_mask,( const_nanos_cpu_set_t cpu_set ));
 
 NANOS_API_DECL(int, nanos_omp_get_max_processors,( void ));
 

@@ -113,6 +113,7 @@ namespace nanos {
       class BotLev : public SchedulePolicy
       {
          public:
+            using SchedulePolicy::queue;
             typedef std::stack<BotLevDOData *>   bot_lev_dos_t;
             typedef std::set<std::pair< unsigned int, DependableObject * > > DepObjVector; /**< Type vector of successors  */
 

@@ -252,6 +252,8 @@ namespace ext
 
    class Versioning : public SchedulePolicy
    {
+      public:
+         using SchedulePolicy::queue;
       private:
          struct TeamData : public ScheduleTeamData
          {

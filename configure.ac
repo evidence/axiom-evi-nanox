@@ -1,4 +1,4 @@
-AC_INIT([nanox], [0.11], [pm-tools@bsc.es])
+AC_INIT([nanox], [0.14a], [pm-tools@bsc.es])
 AC_LANG([C++])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], ["$0 $@"], [Configure line])
@@ -57,22 +57,6 @@ AC_DEFINE_UNQUOTED([NANOX_BUILD_VERSION], [$build_version], [Build version])
 # Debian release
 AC_CHECK_PROG([DEB_RELEASE], [lsb_release], [$(lsb_release -sc)], [])
 AC_SUBST([DEB_RELEASE])
-
-# Allocator support
-AC_MSG_CHECKING([if Nanos++ Allocator has been enabled])
-AC_ARG_ENABLE([allocator], [AS_HELP_STRING([--enable-allocator], [Enables Allocator module])])
-AC_MSG_RESULT([$enable_allocator])
-AS_IF([test "$enable_allocator" = yes],[
-	AC_DEFINE([NANOS_USE_ALLOCATOR],[1],[Specifies whether Nanos++ allocator has been enabled or not])
-])
-
-# Memtracker support
-AC_MSG_CHECKING([if Nanos++ Memtracker has been enabled])
-AC_ARG_ENABLE([memtracker],[AS_HELP_STRING([--enable-memtracker], [Enables Memtracker module])])
-AC_MSG_RESULT([$enable_memtracker])
-AS_IF([test "$enable_memtracker" = xyes],[
-	AC_DEFINE([NANOS_MEMTRACKER_ENABLED],[1],[Specifies whether Nanos++ memtracker module has been enabled or not])
-])
 
 # Set compiler default flags
 : ${CFLAGS=""}
@@ -180,42 +164,7 @@ AX_CHECK_XDMA
 AX_ENABLE_TASK_CALLBACK
 
 # Extrae check
-MPITRACE_HOME=""
-MPITRACE_INC=""
-MPITRACE_LIB=""
-MPITRACE_BIN=""
-
-AC_ARG_WITH([extrae],
-           AS_HELP_STRING([--with-extrae=dir], [Directory of Extrae installation]),
-           [
-                extrae_version_h=$withval/include/extrae_version.h
-                AS_IF([test -e $extrae_version_h],[
-                   extrae_version_string=$(sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h)
-                   extrae_version=$(echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/')
-                   AS_IF([test "$extrae_version" -ge 240],[
-                      MPITRACE_HOME="$withval"
-                      MPITRACE_INC="$withval/include"
-                      MPITRACE_LIB="$withval/lib"
-                      AS_IF([test -d "$MPITRACE_HOME/lib64"],[
-                         MPITRACE_LIB="$MPITRACE_HOME/lib64"
-                      ])
-                      MPITRACE_BIN="$withval/bin"
-                      AC_MSG_RESULT([checking if Extrae library is compatible... yes])
-                   ],[
-                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.4 needed)])
-                   ])
-                ],[
-                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.4 needed)])
-                ])
-           ]
-)
-
-AC_SUBST([MPITRACE_HOME])
-AC_SUBST([MPITRACE_INC])
-AC_SUBST([MPITRACE_LIB])
-AC_SUBST([MPITRACE_BIN])
-
-AM_CONDITIONAL([instrumentation_EXTRAE], test x"$MPITRACE_HOME" != x)
+AX_CHECK_EXTRAE
 
 # Check NextSim support
 AC_ARG_WITH([nextsim],
@@ -292,6 +241,29 @@ AC_SUBST([MCXX])
 # Build versions
 AX_BUILD_VERSIONS
 
+# Allocator support
+AC_MSG_CHECKING([if Nanos++ Allocator has been enabled])
+AC_ARG_ENABLE([allocator], [AS_HELP_STRING([--enable-allocator], [Enables Allocator module])],
+      [], dnl Implicit: enable_allocator=$enableval
+      [enable_allocator="no"])
+AC_MSG_RESULT([$enable_allocator])
+AS_IF([test "$enable_allocator" = yes],[
+      AC_DEFINE([NANOS_USE_ALLOCATOR],[1],[Specifies whether Nanos++ allocator has been enabled])
+])
+
+# Memtracker support
+AC_MSG_CHECKING([if Nanos++ Memtracker has been enabled])
+AC_ARG_ENABLE([memtracker], [AS_HELP_STRING([--enable-memtracker], [Enables Memtracker module])],
+      [], dnl Implicit: enable_memtracker=$enableval
+      [enable_memtracker="no"])
+AC_MSG_RESULT([$enable_memtracker])
+AS_IF([test "$enable_memtracker" = xyes],[
+      AC_DEFINE([NANOS_MEMTRACKER_ENABLED],[1],[Specifies whether Nanos++ memtracker module has been enabled])
+      AC_SUBST([NANOS_MEMTRACKER_ENABLED], [NANOS_MEMTRACKER_ENABLED])
+], [
+      AC_SUBST([NANOS_MEMTRACKER_ENABLED], [NO_NANOS_MEMTRACKER_ENABLED])
+])
+
 # Task-level resiliency support
 AC_MSG_CHECKING([if task resiliency is enabled])
 AC_ARG_ENABLE([resiliency],[AS_HELP_STRING([--enable-resiliency], [Enables task-level resiliency])],
@@ -304,7 +276,10 @@ AS_IF([test $enable_resiliency = yes],[
     [-Werror])
 
   AC_DEFINE([NANOS_RESILIENCY_ENABLED],[],[Indicates whether resiliency features should be used or not.])
+  AC_SUBST([NANOS_RESILIENCY_ENABLED],[NANOS_RESILIENCY_ENABLED])
   resiliency_flags=-fnon-call-exceptions
+], [
+  AC_SUBST([NANOS_RESILIENCY_ENABLED],[NO_NANOS_RESILIENCY_ENABLED])
 ])
 AC_SUBST([enable_resiliency])
 AC_SUBST([resiliency_flags])
@@ -343,20 +318,21 @@ AC_CONFIG_FILES([
                  src/utils/Makefile
                  scripts/offload_slave_launch.sh
                  tests/Makefile
-                 tests/gens/Makefile
-                 tests/gens/api-generator
-                 tests/gens/api-omp-generator
-                 tests/gens/core-generator
-                 tests/gens/mcc-openmp-generator
-                 tests/gens/mcc-ompss-generator
-                 tests/gens/opencl-generator
-                 tests/gens/resiliency-generator
+                 nanox-config.h
        ])
+
+AC_CONFIG_FILES([tests/gens/api-generator], [chmod +x tests/gens/api-generator])
+AC_CONFIG_FILES([tests/gens/api-omp-generator], [chmod +x tests/gens/api-omp-generator])
+AC_CONFIG_FILES([tests/gens/core-generator], [chmod +x tests/gens/core-generator])
+AC_CONFIG_FILES([tests/gens/mcc-openmp-generator], [chmod +x tests/gens/mcc-openmp-generator])
+AC_CONFIG_FILES([tests/gens/mcc-ompss-generator], [chmod +x tests/gens/mcc-ompss-generator])
+AC_CONFIG_FILES([tests/gens/opencl-generator], [chmod +x tests/gens/opencl-generator])
+AC_CONFIG_FILES([tests/gens/resiliency-generator], [chmod +x tests/gens/resiliency-generator])
 
 AC_CONFIG_FILES([
 		 nanox-debug.pc:nanox-debug.pc.in
 		 nanox-performance.pc:nanox-performance.pc.in
-],[],[])
+])
 
 AC_OUTPUT
 
@@ -368,11 +344,11 @@ AS_IF([test "$new_gcc_builtins" = yes],[
 ])
 
 AC_DEFUN([ax_check_enabled],[
-  AS_IF([test -n "$1"],[
+  AS_IF([test x$1 == xyes],[
     echo -n "enabled"
   ],[
     echo -n "disabled"
-  ])  
+  ])
 ])
 
 AS_ECHO(["
@@ -385,9 +361,9 @@ Configured architectures: $ARCHITECTURES
 Configured versions:      $VERSIONS
 Extra options:            $OPTIONS
 GCC atomics:              $gcc_builtins_used
-Memory tracker:           $(ax_check_enabled $enable_memtracker)
-Memory allocator:         $(ax_check_enabled $enable_allocator)
-Task resiliency:          $(ax_check_enabled $resiliency)"])
+Memory tracker:           $(ax_check_enabled([$enable_memtracker]))
+Memory allocator:         $(ax_check_enabled([$enable_allocator]))
+Task resiliency:          $(ax_check_enabled([$enable_resiliency]))"])
 
 AS_IF([test "$gasnet_available_conduits" != ""],[
    AS_ECHO(["\

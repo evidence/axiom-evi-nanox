@@ -61,8 +61,6 @@ inline bool System::getVerbose () const { return _verboseMode; }
 
 inline void System::setVerbose ( bool value ) { _verboseMode = value; }
 
-inline bool System::isSummaryEnabled() const{ return _summary; }
-
 inline void System::setInitialMode ( System::InitialMode mode ) { _initialMode = mode; }
 
 inline System::InitialMode System::getInitialMode() const { return _initialMode; }
@@ -231,7 +229,7 @@ inline void System::completeNUMAInfo()
    /* As all PEs are already created by this time, count how many physical
     * NUMA nodes are available, and map from a physical id to a virtual ID
     * that can be selected by the user via nanos_current_socket() */
-   for ( PEList::const_iterator it = _pes.begin(); it != _pes.end(); ++it )
+   for ( PEMap::const_iterator it = _pes.begin(); it != _pes.end(); ++it )
    {
       int node = (*it)->getNUMANode();
       // If that node has not been translated, yet
@@ -463,7 +461,7 @@ inline unsigned int System::getRootMemorySpaceId() { return 0; }
 inline ProcessingElement &System::getPEWithMemorySpaceId( memory_space_id_t id ) {
    bool found = false;
    PE *target = NULL;
-   for ( PEList::iterator it = _pes.begin(); it != _pes.end() && !found; it++ ) {
+   for ( PEMap::iterator it = _pes.begin(); it != _pes.end() && !found; it++ ) {
       if ( it->second->getMemorySpaceId() == id ) {
          target = it->second;
          found = true;
@@ -471,8 +469,6 @@ inline ProcessingElement &System::getPEWithMemorySpaceId( memory_space_id_t id )
    }
    return *target;
 }
-
-inline PEList& System::getPEList() { return _pes; }
 
 inline void System::setValidPlugin ( const std::string &module,  const std::string &plugin )
 {
@@ -540,6 +536,10 @@ inline bool System::getVerboseDevOps() const {
    return _verboseDevOps;
 }
 
+inline void System::setVerboseCopies(bool value) {
+   _verboseCopies = value;
+}
+
 inline bool System::getVerboseCopies() const {
    return _verboseCopies;
 }
@@ -585,7 +585,7 @@ inline std::set<unsigned int> const &System::getClusterNodeSet() const {
 inline memory_space_id_t System::getMemorySpaceIdOfClusterNode( unsigned int node ) const {
    memory_space_id_t id = 0;
    if ( node != 0 ) {
-      for ( PEList::const_iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+      for ( PEMap::const_iterator it = _pes.begin(); it != _pes.end(); it++ ) {
          if ( it->second->getClusterNode() == node ) {
             id = it->second->getMemorySpaceId();
          }
@@ -669,7 +669,7 @@ inline std::set<memory_space_id_t> const &System::getActiveMemorySpaces() const 
    return _activeMemorySpaces;
 }
 
-inline PEList const &System::getPEs() const {
+inline PEMap& System::getPEs()  {
    return _pes;
 }
 

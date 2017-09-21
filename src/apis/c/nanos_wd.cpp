@@ -67,6 +67,9 @@ NANOS_API_DEF(int, nanos_get_wd_id, ( nanos_wd_t wd ))
 {
    WD *lwd = ( WD * )wd;
    int id = lwd->getId();
+   if ( lwd->getHostId() != 0 ) {
+      id = lwd->getHostId();
+   }
 
    return id;
 }
@@ -110,11 +113,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_co
 
    try 
    {
-      if ( ( 
-              &const_data->props == NULL  || 
-              ( &const_data->props != NULL  && !const_data->props.mandatory_creation ) 
-           ) && !sys.throttleTaskIn() 
-         ) {
+      if ( !const_data->props.mandatory_creation && !sys.throttleTaskIn() ) {
          *uwd = 0;
          return NANOS_OK;
       }
@@ -191,6 +190,10 @@ NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_data_acces
 
       if ( team != NULL ) {
          warning( "Submitting to another team not implemented yet" );
+      }
+
+      if ( sys.getVerboseCopies() ) {
+         *myThread->_file << "Submitting WD " << wd->getId() << " " << (wd->getDescription() == NULL ? "n/a" : wd->getDescription()) << std::endl;
       }
 
       sys.setupWD( *wd, myThread->getCurrentWD() );
@@ -276,17 +279,15 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
          throw NANOS_INVALID_PARAM;
 
       // set properties
-      if ( &const_data->props != NULL ) {
-         if ( const_data->props.tied ) wd.tied();
-         if ( dyn_props && dyn_props->tie_to ) {
-            if (dyn_props->tie_to == myThread) {
-               wd.tieTo( *( BaseThread * ) dyn_props->tie_to );
-            } else {
-               fatal ( "Tiedness violation" );
-            }
-            // Set priority
-            wd.setPriority( dyn_props->priority );
+      if ( const_data->props.tied ) wd.tied();
+      if ( dyn_props && dyn_props->tie_to ) {
+         if (dyn_props->tie_to == myThread) {
+            wd.tieTo( *( BaseThread * ) dyn_props->tie_to );
+         } else {
+            fatal ( "Tiedness violation" );
          }
+         // Set priority
+         wd.setPriority( dyn_props->priority );
       }
 
       int pmDataSize = sys.getPMInterface().getInternalDataSize();

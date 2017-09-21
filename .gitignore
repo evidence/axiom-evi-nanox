@@ -43,3 +43,4 @@ nbproject
 ar-lib
 build*/
 cscope.*
+nanox-config.h

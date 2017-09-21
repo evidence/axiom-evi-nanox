@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*      Copyright 2017 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -17,20 +17,36 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "wddeque.hpp"
-#include "system.hpp"
 
-using namespace nanos;
+#include "smp_ult.hpp"
+#include <iostream>
 
-
-void WDDeque::initDeviceList()
+extern "C"
 {
-   DeviceList devs = sys.getSupportedDevices();
-
-   for ( DeviceList::iterator it = devs.begin(); it != devs.end(); it++ ) {
-      const Device * dev = *it;
-      Atomic<unsigned int> num = 0;
-      _ndevs.insert( std::make_pair( dev, num ) );
-   }
+// low-level helper routine to start a new user-thread
+   void startHelper ();
 }
 
+void * initContext( void *stack, size_t stackSize, void (*wrapperFunction)(nanos::WD&), nanos::WD *wd,
+                    void *cleanup, void *cleanupArg )
+{
+   intptr_t * state = (intptr_t *) stack;
+   state += (stackSize/sizeof(intptr_t)) - 1;
+
+   //! Stack must be aligned to 8 byte boundary
+   unsigned int align = ( ( (unsigned int) state ) & 7) / sizeof(intptr_t *);
+   state -= align;
+
+   *state = ( intptr_t )cleanup;
+   state--;
+   *state = ( intptr_t )cleanupArg;
+   state --;
+   *state = ( intptr_t )wrapperFunction;
+   state--;
+   *state = ( intptr_t )wd;
+   state--;
+   *state = ( intptr_t )startHelper;
+   state -= 25; //number of push and pop registers except for the lr on pc on stack.s
+
+   return (void *) state;
+}

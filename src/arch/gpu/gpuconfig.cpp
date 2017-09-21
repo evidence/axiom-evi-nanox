@@ -26,6 +26,14 @@
 
 #include <cuda_runtime.h>
 
+// These symbols are used to detect that a specific feature of OmpSs is used in an application
+// (i.e. Mercurium explicitly defines one of these symbols if they are used)
+extern "C"
+{
+   __attribute__((weak)) void nanos_needs_cuda_fun(void);
+   __attribute__((weak)) void nanos_needs_cublas_fun(void);
+}
+
 namespace nanos {
 namespace ext {
 
@@ -40,6 +48,7 @@ bool GPUConfig::_overlapInputs = true;
 bool GPUConfig::_overlapOutputs = true;
 transfer_mode GPUConfig::_transferMode = NANOS_GPU_TRANSFER_NORMAL;
 size_t GPUConfig::_maxGPUMemory = 0;
+size_t GPUConfig::_maxPinnedMemory = 1024; // 1024 MB
 bool GPUConfig::_allocatePinnedBuffers = true;
 bool GPUConfig::_gpuWarmup = true;
 bool GPUConfig::_initCublas = false;
@@ -56,7 +65,7 @@ void GPUConfig::prepare( Config& config )
                                 "Enable the use of GPUs with CUDA" );
    config.registerEnvOption( "enable-cuda", "NX_ENABLECUDA" );
    config.registerArgOption( "enable-cuda", "enable-cuda" );
-   
+
    config.registerConfigOption( "disable-cuda", NEW Config::FlagOption( _forceDisableCUDA ),
                                 "Disable the use of GPUs with CUDA" );
    config.registerEnvOption( "disable-cuda", "NX_DISABLECUDA" );
@@ -117,6 +126,12 @@ void GPUConfig::prepare( Config& config )
    config.registerEnvOption ( "gpu-max-memory", "NX_GPUMAXMEM" );
    config.registerArgOption ( "gpu-max-memory", "gpu-max-memory" );
 
+   // Set maximum Host Pinned memory to allocate
+   config.registerConfigOption( "gpu-max-pinned-memory", new Config::SizeVar( _maxPinnedMemory ),
+                                "Defines the maximum amount of Pinned memory (in MB) to use for each GPU (defaults to 1024 MB)" );
+   config.registerEnvOption ( "gpu-max-pinned-memory", "NX_GPUMAXPINMEM" );
+   config.registerArgOption ( "gpu-max-pinned-memory", "gpu-max-pinned-memory" );
+
    // Enable / disable overlapping of outputs
    config.registerConfigOption( "gpu-pinned-buffers", NEW Config::FlagOption( _allocatePinnedBuffers ),
                                 "Set whether GPU component should allocate pinned buffers used by data transfers (enabled by default)" );
@@ -152,22 +167,33 @@ void GPUConfig::apply()
 {
    //Auto-enable CUDA if it was not done before (#1050)
    void * myself = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
-   bool mercuriumHasTasks = dlsym(myself, "ompss_uses_cuda") != NULL;
-   
-   // Init cublas if it wasn't manually enabled, but detected in the binary (#1050)
-   _initCublas = _initCublas || ( dlsym(myself, "gpu_cublas_init") != NULL );
-   // Init cuSPARSE if it wasn't manually enabled, but detected in the binary (#1050)
-   _initCuSparse = _initCuSparse || ( dlsym(myself, "gpu_sparse_init") != NULL );
-   
+
+   //For more information see  #1214
+   bool mercurium_has_tasks;
+   if ((mercurium_has_tasks = dlsym(myself, "ompss_uses_cuda"))) {
+      warning0("Old mechanism to enable optional features has been detected. This mechanism will be"
+            " deprecated soon, we recommend you to update your OmpSs installation.");
+   }
+   mercurium_has_tasks = mercurium_has_tasks || nanos_needs_cuda_fun;
+
+   //For more information see  #1214
+   bool automatic_cublas_init;
+   if ((automatic_cublas_init = dlsym(myself, "gpu_cublas_init"))) {
+      warning0("Old mechanism to enable optional features has been detected. This mechanism will be"
+            " deprecated soon, we recommend you to update your OmpSs installation.");
+   }
+   automatic_cublas_init = automatic_cublas_init || nanos_needs_cublas_fun;
+   _initCublas = _initCublas || automatic_cublas_init;
+
    dlclose( myself );
-   
+
    if ( !_enableCUDA ) {
       //ompss_uses_cuda pointer will be null (it's extern) if the compiler didn't fill it
-      _enableCUDA = mercuriumHasTasks;
+      _enableCUDA = mercurium_has_tasks;
    }
 
    if ( _forceDisableCUDA || !_enableCUDA || _numGPUs == 0 ) {
-      if ( mercuriumHasTasks ) {
+      if ( mercurium_has_tasks ) {
          message0( " CUDA tasks were compiled and CUDA was disabled, execution"
                " could have unexpected behavior and can even hang, check configuration parameters" );
       }
@@ -179,6 +205,7 @@ void GPUConfig::apply()
       _overlapInputs = false;
       _overlapOutputs = false;
       _maxGPUMemory = 0;
+      _maxPinnedMemory = 0;
       _gpuWarmup = false;
       _initCublas = false;
       _initCuSparse = false;
@@ -295,9 +322,9 @@ void GPUConfig::apply()
             warning0( "Couldn't initialize cuSPARSE library at runtime startup" );
          }
       }
-      
+
       if ( _numGPUs == 0 ) {
-         if ( mercuriumHasTasks ) {
+         if ( mercurium_has_tasks ) {
             message0( " CUDA tasks were compiled and no CUDA devices were found, execution"
                     " could have unexpected behavior and can even hang" );
          } else {

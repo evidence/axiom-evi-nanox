@@ -117,10 +117,7 @@ AS_IF([test "x$gasnet" = xyes],[
   gasnet_available_conduits=
   _AX_CHECK_GASNET_CONDUIT(smp,$CXX)
   _AX_CHECK_GASNET_CONDUIT(udp,$CXX,-lamudp)
-  _AX_CHECK_GASNET_CONDUIT(aries,$CXX)
-  ##_AX_CHECK_GASNET_CONDUIT(axiom,$target_alias-g++,-L/home/massy/axiom-evi/axiom-evi-nic/axiom_user_library -L/home/massy/axiom-evi/axiom-evi-apps/axiom-run/lib -laxiom_user_api -laxiom_run_api)
-  #_AX_CHECK_GASNET_CONDUIT(axiom,$CXX,-L/home/massy/axiom-evi/axiom-evi-nic/axiom_user_library -L/home/massy/axiom-evi/axiom-evi-apps/axiom-run/lib -laxiom_user_api -laxiom_run_api)
-  #_AX_CHECK_GASNET_CONDUIT(axiom,$CXX,-L$with_axiomhome/axiom-evi-nic/axiom_user_library -L$with_axiomhome/axiom-evi-apps/axiom-run/lib -laxiom_user_api -laxiom_run_api)
+  _AX_CHECK_GASNET_CONDUIT(aries,$CXX,[-L/opt/cray/pmi/5.0.10-1.0000.11050.0.0.ari/lib64 -lpmi -L/opt/cray/ugni/6.0-1.0502.10863.8.29.ari/lib64 -lugni -Wl,--whole-archive,-lhugetlbfs,--no-whole-archive],-DGASNET_CONDUIT_ARIES)
   _AX_CHECK_GASNET_CONDUIT(axiom,$CXX,-L$with_axiomhome/output/staging/usr/lib -laxiom_allocator -levi_lmm -laxiom_user_api -laxiom_run_api -laxiom_init_api,[-I$with_axiomhome/output/staging/usr/include/axiom],[-Wl,-T$with_axiomhome/output/target/usr/axiom-evi-allocator-lib/xs_map64.lds])
   _AX_CHECK_GASNET_CONDUIT(axiom,$CXX,-L$ROOTFS/usr/lib -L$ROOTFS/usr/local/lib -laxiom_allocator -levi_lmm -laxiom_user_api -laxiom_run_api -laxiom_init_api,[-I$ROOTFS/usr/include/axiom -I$ROOTFS/usr/local/include/axiom],[-Wl,-T$ROOTFS/usr/axiom-evi-allocator-lib/xs_map64.lds])
 
@@ -173,6 +170,12 @@ GASNet is linked with.
   AC_DEFINE([GASNET_PAR],[],[Defines which multithreading support is required to GASNet])
 
 ])dnl if gasnet
+
+AS_IF([test "x$gasnet_available_conduits" != x],[
+  AC_SUBST([HAVE_GASNET], [CLUSTER_DEV])
+], [
+  AC_SUBST([HAVE_GASNET], [NO_CLUSTER_DEV])
+])
 
 m4_foreach_w([conduit_name],[smp udp mpi ibv mxm aries axiom],[
   _AX_CONDUIT_SUBST(conduit_name)

@@ -44,8 +44,17 @@ AS_CASE([$host],
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=ia64
   ],
-  [arm*-*-gnueabi*],
+  [arm*-*-gnueabihf],
   [
+    # ARMv7 with hardware floating point support
+    OS=unix-os
+    ARCHITECTURES="$ARCHITECTURES smp"
+    SMP_ARCH=armv71_hf
+  ],
+  [arm*-*-gnueabi],
+  [
+    # ARMv7 with software floating point operations
+    # Other ARMv7 will fail to unknown disabling the ULT
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=armv71
@@ -93,12 +102,12 @@ AS_CASE([$host],
       AC_ARG_VAR([PPUEMBED],[SPU to PPU embedding tool])
       AC_CHECK_PROG( [SPUCC], [spu-cc], spu-cc, no)
       if test x$SPUCC = xno ; then
-	AC_MSG_WARN([spu-cc not found. Disabling SPU support]) 
+	AC_MSG_WARN([spu-cc not found. Disabling SPU support])
         spu_valid=no
-      else 
+      else
         AC_CHECK_PROG( [PPUEMBED], [ppu-embedspu], ppu-embedspu, no)
         if test x$PPUEMBED = xno ; then
-          AC_MSG_WARN([ppu-embedspu not found. Disabling SPU support]) 
+          AC_MSG_WARN([ppu-embedspu not found. Disabling SPU support])
           spu_valid=no
         else
            AC_ARG_WITH([cellsdk],
@@ -145,7 +154,9 @@ AS_IF([test "$ult_support" = yes dnl
          -a "$enable_ult"  = yes],[
   ult_support=yes
   AC_DEFINE([SMP_SUPPORTS_ULT],[],[Indicates support for user level threads])
+  AC_SUBST([SMP_SUPPORTS_ULT], [SMP_SUPPORTS_ULT])
 ],[
+  AC_SUBST([SMP_SUPPORTS_ULT], [NO_SMP_SUPPORTS_ULT])
   ult_support=no
 ])
 
@@ -154,4 +165,3 @@ AC_SUBST([SMP_ARCH])
 AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test "$ult_support" = yes])
 
 ]) dnl AX_CHECK_HOST_ARCH
-

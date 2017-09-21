@@ -44,7 +44,7 @@
 #include "threadmanager_decl.hpp"
 #include "router_decl.hpp"
 
-#include "newregiondirectory_decl.hpp"
+#include "regiondirectory_decl.hpp"
 #include "smpdevice_decl.hpp"
 
 #ifdef GPU_DEV
@@ -151,7 +151,7 @@ namespace nanos {
          ArchitecturePlugins  _archs;
 
 
-         PEList               _pes;
+         PEMap                _pes;
          ThreadList           _workers;
 
          //! List of all supported architectures by _pes
@@ -262,15 +262,19 @@ namespace nanos {
          bool _cgAlloc;
          bool _inIdle;
          bool _lazyPrivatizationEnabled;
+         bool _preSchedule;
+         std::map<int, std::set<WD *> > _slots;
          void *_watchAddr;
 
       private:
          PE * createPE ( std::string pe_type, int pid, int uid );
 
-         //* \brief Prints the Environment Summary (resources, plugins, prog. model, etc.) before the execution
+         /*! \brief Prints the Environment Summary (resources, plugins, prog. model, etc.)
+          */
          void environmentSummary( void );
 
-         //* \brief Prints the Execution Summary (time, completed tasks, etc.) at the end of the execution
+         /*! \brief Prints the Execution Summary (time, completed tasks, etc.)
+          */
          void executionSummary( void );
 
       public:
@@ -371,8 +375,6 @@ namespace nanos {
          int nextThreadId ();
          unsigned int nextPEId ();
 
-         bool isSummaryEnabled() const;
-
          /*!
           * \brief Returns the maximum number of times a task can try to recover from an error by re-executing itself.
           */
@@ -392,7 +394,7 @@ namespace nanos {
           * \param[in] parallel Identifies the type of team, parallel code or single executor.
           */
          ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuse=true, bool enter=true, bool parallel=false );
-         
+
          ThreadList::iterator getWorkersBegin();
          ThreadList::iterator getWorkersEnd();
 
@@ -598,12 +600,10 @@ namespace nanos {
          //Lock _graphRepListsLock;
       public:
          //std::list<GraphEntry *> *getGraphRepList();
-         
-         NewNewRegionDirectory const &getMasterRegionDirectory() { return _hostMemory.getDirectory(); }
-         ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );;
 
-         PEList& getPEList();
-         
+         RegionDirectory const &getMasterRegionDirectory() { return _hostMemory.getDirectory(); }
+         ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );
+
          void setValidPlugin ( const std::string &module,  const std::string &plugin );
 
          /*! \brief Registers a plugin option. Depending on whether nanox --help
@@ -678,6 +678,7 @@ namespace nanos {
          bool getVerboseDevOps() const;
          void setVerboseDevOps(bool value);
          bool getVerboseCopies() const;
+         void setVerboseCopies(bool value);
          bool getSplitOutputForThreads() const;
          std::string getRegionCachePolicyStr() const;
          void setRegionCachePolicyStr( std::string policy );
@@ -713,7 +714,7 @@ namespace nanos {
          bool usePredecessorCopyInfo() const;
          bool invalControlEnabled() const;
          std::set<memory_space_id_t> const &getActiveMemorySpaces() const;
-         PEList const &getPEs() const;
+         PEMap& getPEs();
          void allocLock();
          void allocUnlock();
          bool useFineAllocLock() const;
@@ -727,6 +728,7 @@ global_reg_t _registerMemoryChunk_2dim(void *addr, std::size_t rows, std::size_t
          void notifyOutOfBlockingMPICall();
          void notifyIdle( unsigned int node );
          void disableHelperNodes();
+         void preSchedule();
    };
 
    extern System sys;

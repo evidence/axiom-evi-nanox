@@ -55,6 +55,9 @@ namespace nanos {
       {
          public:
             const static int UnassignedNode =-1; //!< Value returned by getNode() when it does not find a suitable nod
+
+            using SchedulePolicy::queue;         //!< Load default implementation of queue prior to redefinition
+            using SchedulePolicy::successorFound;//!< Load default implementation of successorFound
          
          private:
             bool _steal;                         //!< Steal work from other sockets?
@@ -202,8 +205,8 @@ namespace nanos {
                // Look for GPUs in all the nodes
                for (System::ThreadList::iterator it=sys.getWorkersBegin();
                   it!=sys.getWorkersEnd(); it++) {
-                  BaseThread *worker = it->second;
 #ifdef GPU_DEV
+                  BaseThread *worker = it->second;
                   if ( worker->runningOn()->supports( nanos::ext::GPU ) )
                   {
                      int node = worker->runningOn()->getNumaNode();
@@ -213,8 +216,6 @@ namespace nanos {
                      verbose0( "[NUMA] Found GPU Worker in node " << node << " (virtual " << vNode << ")" );
                   }
 #endif
-                  // Avoid unused variable warning.
-                  worker = worker;
                }
                // Initialise the structure that will cycle through gpu nodes when giving away GPU tasks
                _gpuNodesToGive.stealNext = 0;
@@ -476,47 +477,48 @@ namespace nanos {
                   message0( "[NUMA] Stealing can not be enabled with just one NUMA node available, disabling it" );
                   _steal = false;
                }
-               
+
                // Now we can find GPU nodes since the workers will have been created
                findGPUNodes();
-               
-               computeDistanceInfo();
-               
-               if ( sys.isSummaryEnabled() ){
-                  message0( "====================== NUMA Summary ======================" );
-                  message0( "=== Worker binding:" );
-                  for (System::ThreadList::iterator it=sys.getWorkersBegin();
-                      it!=sys.getWorkersEnd(); it++) {
-                     const BaseThread * w = it->second;
-                     
-                     message0( "===  | Worker " << w->getId() << ", cpu id: " << w->getCpuId() << ", NUMA node " << w->runningOn()->getNumaNode() );
-                  }
-                  
-                  std::stringstream ss;
-                  std::ostream_iterator<int> outIt (ss ,", ");
-                  std::copy( _gpuNodes.begin(), _gpuNodes.end(), outIt );
-                  message0( "=== CUDA devices in:     " << ss.str() );
-                  
-                  // Clear stringstream to reuse it
-                  ss.str( std::string() );
-                  
-                  ss     << "=== NUMA node mapping (virtual -> physical):   ";
 
-                  const std::vector<int> &numaNodeMap = sys.getNumaNodeMap();
-                  for ( int pNode = 0; pNode < (int)numaNodeMap.size(); ++pNode )
-                  {
-                     int vNode = numaNodeMap[pNode];
-                     // If this real node has a valid virtual mapping
-                     if ( vNode != INT_MIN )
-                        ss << vNode << "->" << pNode << ", ";
-                  }
-                  message0( ss.str() );
-                  
-                  message0( "=========================================================" );
-               }
-               
+               computeDistanceInfo();
+
                // Create 2 queues per socket plus one for the global queue.
                return NEW TeamData( sys.getNumNumaNodes() );
+            }
+
+            virtual std::string getSummary() const
+            {
+               std::ostringstream s;
+               s << "====================== NUMA Summary ======================" << std::endl;
+               s << "=== Worker binding:" << std::endl;
+               for (System::ThreadList::iterator it=sys.getWorkersBegin();
+                     it!=sys.getWorkersEnd(); it++) {
+                  const BaseThread *w = it->second;
+
+                  s << "===  | Worker " << w->getId() << ", cpu id: " << w->getCpuId()
+                     << ", NUMA node " << w->runningOn()->getNumaNode() << std::endl;
+               }
+
+               std::stringstream ss;
+               std::ostream_iterator<int> outIt (ss ,", ");
+               std::copy( _gpuNodes.begin(), _gpuNodes.end(), outIt );
+               s << "=== CUDA devices in:     " << ss.str() << std::endl;
+
+               //// Clear stringstream to reuse it
+               //ss.str( std::string() );
+
+               s << "=== NUMA node mapping (virtual -> physical):   ";
+               const std::vector<int> &numaNodeMap = sys.getNumaNodeMap();
+               for ( int pNode = 0; pNode < (int)numaNodeMap.size(); ++pNode )
+               {
+                  int vNode = numaNodeMap[pNode];
+                  // If this real node has a valid virtual mapping
+                  if ( vNode != INT_MIN )
+                     s << vNode << "->" << pNode << ", ";
+               }
+               s << std::endl;
+               return s.str();
             }
 
             virtual ScheduleThreadData * createThreadData ()
@@ -669,13 +671,13 @@ namespace nanos {
 
             virtual WD * atIdle ( BaseThread *thread, int numSteal )
             {
+               WorkDescriptor * wd = thread->getNextWD();
+               if ( wd ) return wd;
+
                // If stealing has been enabled and its time to steal
                if ( numSteal && _steal )
                   // Try...
                   return stealWork( thread );
-               
-               // Otherwise, normal at idle operation
-               WD* wd = NULL;
                
                // Get the physical node of this thread
                unsigned node = thread->runningOn()->getNumaNode();
@@ -842,7 +844,7 @@ namespace nanos {
                   }
                }
             }
-            
+
             //! \brief Enables or disables stealing
             virtual void setStealing( bool value ) { _steal = value; }
             
@@ -851,6 +853,16 @@ namespace nanos {
             
             //! \brief Returns if scheduler uses priorities 
             bool usingPriorities() const { return true; }
+
+            bool testDequeue()
+            {
+               TeamData &tdata = (TeamData &) *myThread->getTeam()->getScheduleData();
+               int num_queues = sys.getSMPPlugin()->getNumSockets()*2 + 1;
+               for ( int i=0; i<num_queues; ++i ) {
+                  if ( tdata._readyQueues[i].testDequeue() ) return true;
+               }
+               return false;
+            }
       };
 
       class SocketSchedPlugin : public Plugin
