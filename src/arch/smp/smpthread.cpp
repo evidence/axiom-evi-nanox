@@ -37,6 +37,7 @@
 
 #include "system.hpp"
 
+#include <cxxabi.h>
 //#include "clusterdevice_decl.hpp"
 
 using namespace nanos;
@@ -224,6 +225,7 @@ SMPMultiThread::SMPMultiThread( WD &w, SMPProcessor *pe,
       unsigned int representingPEsCount, PE **representingPEs ) :
    SMPThread ( w, pe, pe ),
    _current( 0 ) {
+    fprintf(stderr, "TH new SMPMultiThread instance=%p\n",this);
    setCurrentWD( w );
    if ( representingPEsCount > 0 ) {
       addThreadsFromPEs( representingPEsCount, representingPEs );
@@ -237,4 +239,122 @@ void SMPMultiThread::addThreadsFromPEs(unsigned int representingPEsCount, PE **r
    {
       _threads.push_back( &( representingPEs[ i ]->startWorker( this ) ) );
    }
+}
+
+
+
+
+
+
+
+static void decodeAndSetSched(const char *envVar, PThread& pthread) {
+    char *value,*start,*end;
+    int sched_policy;
+    uint64_t p0=0,p1=0,p2=0;
+
+    value=getenv(envVar);
+    if (value==NULL) {
+        fprintf(stderr,"WARNING '%s' environment variable not found! Not setting scheduler parameters!\n",envVar);
+        return;
+    }
+
+    // DECODE
+
+    start=value;
+    end=NULL;
+    sched_policy=(int)strtol(start,&end,10);
+    if (start==end) {
+        if (strncmp(start,"OTHER",5)==0) {
+            sched_policy=SCHED_OTHER;
+            end+=5;
+        } else
+        if (strncmp(start,"DEADLINE",8)==0) {
+            sched_policy=SCHED_DEADLINE;
+            end+=6;
+        } else
+        if (strncmp(start,"FIFO",4)==0) {
+            sched_policy=SCHED_FIFO;
+            end+=4;
+        } else
+        if (strncmp(start,"BATCH",5)==0) {
+            sched_policy=SCHED_BATCH;
+            end+=5;
+        } else
+        if (strncmp(start,"IDLE",4)==0) {
+            sched_policy=SCHED_IDLE;
+            end+=4;
+        } else
+        if (strncmp(start,"RR",2)==0) {
+            sched_policy=SCHED_RR;
+            end+=2;
+        } else {
+            fprintf(stderr,"%s='%s': unrecognized policy name or value\n",envVar,value);
+            return;
+        }
+    }
+    if (*end!='\0') {
+        if (*end!=',') {
+            fprintf(stderr, "%s='%s': comma expected\n",envVar,value);
+            return;
+        }
+        start=end+1;
+        p0=strtol(start,&end,10);
+        if (start==end) {
+            fprintf(stderr, "%s='%s': unrecognized param value\n",envVar,value);
+            return;
+        }
+    }
+    if (*end!='\0') {
+        if (*end!=',') {
+            fprintf(stderr, "%s='%s': comma expected",envVar,value);
+            return;
+        }
+        start=end+1;
+        p1=strtol(start,&end,10);
+        if (start==end) {
+            fprintf(stderr, "%s='%s': unrecognized param value",envVar,value);
+            return;
+        }
+    }
+    if (*end!='\0') {
+        if (*end!=',') {
+            fprintf(stderr, "%s='%s': comma expected",envVar,value);
+            return;
+        }
+        start=end+1;
+        p2=strtol(start,&end,10);
+        if (start==end) {
+            fprintf(stderr, "%s='%s': unrecognized param value",envVar,value);
+            return;
+        }
+    }
+    if (*end!='\0') {
+        fprintf(stderr, "%s='%s': unexpected chars after parameter",envVar,value);
+        return ;
+    }
+
+    // SET
+    
+    pthread.setSchedParam((PThreadSchedPolicy)sched_policy,p0,p1,p2);
+}
+
+void SMPThread::initializeDependent( void ) {
+    int status;
+    char *name;
+    name=abi::__cxa_demangle(typeid(this).name(),0,0,&status);
+    fprintf(stderr,"TH SMPThread::initializeDependent() type=%s instance=%p self=0x08%lx \n",name,this,pthread_self());
+    free(name);
+    //if (__sync_fetch_and_add(&MYcounter,1)==0) _pthread.setSchedParam(PThreadSchedPolicy::FIFO);
+    //else _pthread.setSchedParam(PThreadSchedPolicy::NORMAL);
+    decodeAndSetSched("AXIOM_WRK_PARAMS",_pthread);
+}
+
+void SMPMultiThread::initializeDependent( void ) {
+    int status;
+    char *name;
+    name=abi::__cxa_demangle(typeid(this).name(),0,0,&status);
+    fprintf(stderr,"TH SMPMultiThread::initializeDependent() type=%s instance=%p self=0x08%lx \n",name,this,pthread_self());
+    free(name);
+    //_pthread.setSchedParam(PThreadSchedPolicy::NORMAL);
+    decodeAndSetSched("AXIOM_COM_PARAMS",_pthread);
 }

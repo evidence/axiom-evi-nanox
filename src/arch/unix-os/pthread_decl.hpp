@@ -24,9 +24,11 @@
 #include "taskexecutionexception_decl.hpp"
 #include <pthread.h>
 #include <signal.h>
-
+#include <linux/sched.h>
 
 namespace nanos {
+
+    enum PThreadSchedPolicy {OTHER=SCHED_OTHER, FIFO=SCHED_FIFO, RR=SCHED_RR, DEADLINE=SCHED_DEADLINE, BATCH=SCHED_BATCH, IDLE=SCHED_IDLE};
 
    class PThread
    {
@@ -36,6 +38,9 @@ namespace nanos {
          ext::SMPProcessor * _core;
 
          pthread_t   _pth;
+   public:
+         pid_t       _tid;
+   private:
          size_t      _stackSize;
 
          pthread_cond_t    _condWait;  /*! \brief Condition variable to use in pthread_cond_wait */
@@ -47,7 +52,9 @@ namespace nanos {
 
       public:
          // constructor
-         PThread( ext::SMPProcessor * core ) : _core( core ), _pth( ), _stackSize( 0 ) { }
+         PThread( ext::SMPProcessor * core ) : _core( core ), _pth( ), _tid( 0 ), _stackSize( 0 ) {
+             fprintf(stderr, "PTH new PThread instance=%p\n",this);
+         }
 
          // destructor
          virtual ~PThread() {}
@@ -71,6 +78,9 @@ namespace nanos {
 
          virtual void condWait();
          virtual void condSignal();
+
+         virtual void setSchedParam(PThreadSchedPolicy policy);
+         virtual void setSchedParam(PThreadSchedPolicy policy, uint64_t p0, uint64_t p1, uint64_t p2);
 
 #ifdef NANOS_RESILIENCY_ENABLED
          virtual void setupSignalHandlers();
