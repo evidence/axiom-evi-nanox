@@ -1,5 +1,9 @@
 #!/bin/sh
 
+#
+# used with buildroot
+#
+
 [ -z "$AXIOMHOME" ] && AXIOMHOME=$HOME/axiom-evi
 for arg in "$@";do
     echo "$arg" | grep -q '^--with-axiomhome=' \
@@ -24,7 +28,7 @@ if [ "$FS" = "seco" ]; then
     [ -z "$PREFIX" ] && PREFIX=$HOST_DIR
 
     export PATH=$PATH:$HOST_DIR/usr/bin
-        
+
 else
 
     OUTPUT_DIR=$AXIOMHOME/output
@@ -38,20 +42,28 @@ else
     CC="$HOST_DIR/usr/bin/aarch64-buildroot-linux-gnu-gcc" ; export CC
     CXX="$HOST_DIR/usr/bin/aarch64-buildroot-linux-gnu-g++" ; export CXX
 
-    [ -z "$PREFIX" ] && PREFIX=$SYSROOT_DIR
-
 fi
+
+#PKG_CONFIG_PATH=$OUTPUT/lib/pkgconfig
+#
+#if pkg-config --exists ompi; then
+#    EXTRA_PARAMS="$EXTRA_PARAMS --with-mpi=$OUTPUT"
+#fi
+
+[ -z "$PREFIX" ] && PREFIX=$SYSROOT_DIR
 
 export LDFLAGS=-Wl,--build-id=uuid
 
-#../configure --prefix=$OUTPUT 
 ../configure --prefix=$PREFIX \
 	     --build=$BUILD_ID --host=$TARGET_ID --target=$TARGET_ID \
 	     --with-gasnet \
-	     --with-gasnet-include=${SYSROOT_DIR}/usr/include/debug \
-	     --with-gasnet-lib=${SYSROOT_DIR}/usr/lib/debug \
+	     --with-gasnet-include=${SYSROOT_DIR}/usr/include/performance \
+	     --with-gasnet-lib=${SYSROOT_DIR}/usr/lib/performance \
+	     $EXTRA_PARAMS \
+	     --disable-debug \
 	     --disable-performance \
-	     --disable-instrumentation \
+	     --enable-instrumentation \
+	     --with-extrae=${SYSROOT_DIR}/usr \
 	     --disable-instrumentation-debug \
              --with-axiomhome=$AXIOMHOME \
 	     "$@"

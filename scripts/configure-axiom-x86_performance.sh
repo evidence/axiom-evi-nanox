@@ -1,5 +1,9 @@
 #!/bin/sh
 
+#
+# used with buildroot
+#
+
 [ -z "$AXIOMHOME" ] && AXIOMHOME=$HOME/axiom-evi
 for arg in "$@";do
     echo "$arg" | grep -q '^--with-axiomhome=' \

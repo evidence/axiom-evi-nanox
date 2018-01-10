@@ -65,7 +65,7 @@ AC_SUBST([DEB_RELEASE])
 # AXIOM
 AC_ARG_WITH(axiomhome,
 [AS_HELP_STRING([--with-axiomhome=PATH],
-                [specify root directory of AXIOM project])],
+                [specify root directory of AXIOM project (used with buildroot, use ROOTFS env variable otherwise)])],
   [
     # Check if the user provided a valid PATH
     AS_IF([test -d "$withval"],[
