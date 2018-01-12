@@ -6,6 +6,23 @@ ifndef LINARO
 $(warning LINARO environment variable not defined)
 endif
 
+PACKAGES:= \
+	nanox \
+	nanox-dev \
+	nanox-performance \
+	nanox-performance-dev \
+	nanox-performance-dbg \
+	nanox-debug \
+	nanox-debug-dev \
+	nanox-debug-dbg
+
+ifneq ($(DISABLE_INSTR),1)
+PACKAGES:=$(PACKAGES) \
+	nanox-instrumentation \
+	nanox-instrumentation-dev \
+	nanox-instrumentation-dbg
+endif
+
 .PHONY: build build-arch build-indep binary binary-arch binary-indep clean
 
 build: build-arch build-indep
@@ -18,16 +35,17 @@ build-indep:
 
 binary: binary-arch binary-indep
 
-binary-arch: make-changelog init-install
+binary-arch: make-changelog init-install init-control
 	dh_testroot
 	dh_prep
 	dh_installdirs
 
 	PATH=$(LINARO)/host/usr/bin:$(PATH) $(MAKE) -C build_debug DESTDIR=$(DEBIAN_DIR)/tmp install
 	PATH=$(LINARO)/host/usr/bin:$(PATH) $(MAKE) -C build_perf DESTDIR=$(DEBIAN_DIR)/tmp install
+ifneq ($(DISABLE_INSTR),1)
 	PATH=$(LINARO)/host/usr/bin:$(PATH) $(MAKE) -C build_instr DESTDIR=$(DEBIAN_DIR)/tmp install
-
-	dh_install --fail-missing
+endif
+	dh_install --fail-missing -Xinstrumentation
 	dh_installdocs
 	dh_installchangelogs
 	dh_installexamples
@@ -65,7 +83,9 @@ binary-arch: make-changelog init-install
 
 	dh_strip -pnanox-performance --dbg-package=nanox-performance-dbg
 	dh_strip -pnanox-debug --dbg-package=nanox-debug-dbg
+ifneq ($(DISABLE_INSTR),1)
 	dh_strip -pnanox-instrumentation --dbg-package=nanox-instrumentation-dbg
+endif
 	PATH=$(LINARO)/host/usr/bin:$(PATH) dh_makeshlibs
 	dh_shlibdeps  --sysroot=$(ROOTFS)
 	dh_installdeb
@@ -75,7 +95,7 @@ binary-arch: make-changelog init-install
 
 binary-indep:
 
-clean: clean-changelog clean-install
+clean: clean-changelog clean-install clean-control
 	dh_testdir
 #	make clean
 	dh_clean
@@ -85,7 +105,7 @@ clean: clean-changelog clean-install
 #
 
 init-install:
-ifeq ($(FS),x86)
+ifeq ($(MODE),x86)
 	ln -sf $(DEBIAN_DIR)/nanox-debug-dev.install.x86 $(DEBIAN_DIR)/nanox-debug-dev.install
 	ln -sf $(DEBIAN_DIR)/nanox-debug.install.x86 $(DEBIAN_DIR)/nanox-debug.install
 	ln -sf $(DEBIAN_DIR)/nanox-dev.install.x86 $(DEBIAN_DIR)/nanox-dev.install
@@ -115,6 +135,21 @@ clean-install:
 	rm -f $(DEBIAN_DIR)/nanox-performance.install
 	rm -f $(DEBIAN_DIR)/nanox.install
 
+#
+# clean/init control
+#
+
+.PHONY: init-control clean-control
+
+init-control:
+ifneq ($(DISABLE_INSTR),1)
+	ln -f -s $(DEBIAN_DIR)/control.instr $(DEBIAN_DIR)/control
+else
+	ln -f -s $(DEBIAN_DIR)/control.no-instr $(DEBIAN_DIR)/control
+endif
+
+clean-control:
+	rm -f control
 #
 # changelog
 #
