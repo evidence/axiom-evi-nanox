@@ -6,23 +6,6 @@ ifndef LINARO
 $(warning LINARO environment variable not defined)
 endif
 
-PACKAGES:= \
-	nanox \
-	nanox-dev \
-	nanox-performance \
-	nanox-performance-dev \
-	nanox-performance-dbg \
-	nanox-debug \
-	nanox-debug-dev \
-	nanox-debug-dbg
-
-ifneq ($(DISABLE_INSTR),1)
-PACKAGES:=$(PACKAGES) \
-	nanox-instrumentation \
-	nanox-instrumentation-dev \
-	nanox-instrumentation-dbg
-endif
-
 .PHONY: build build-arch build-indep binary binary-arch binary-indep clean
 
 build: build-arch build-indep
@@ -45,7 +28,7 @@ binary-arch: make-changelog init-install init-control
 ifneq ($(DISABLE_INSTR),1)
 	PATH=$(LINARO)/host/usr/bin:$(PATH) $(MAKE) -C build_instr DESTDIR=$(DEBIAN_DIR)/tmp install
 endif
-	dh_install --fail-missing -Xinstrumentation
+	dh_install --fail-missing
 	dh_installdocs
 	dh_installchangelogs
 	dh_installexamples
