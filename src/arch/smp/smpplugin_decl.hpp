@@ -59,6 +59,7 @@ class SMPPlugin : public SMPBasePlugin
    int                          _bindingStart;
    int                          _bindingStride;
    bool                         _bindThreads;
+   int                         _useMyCpuNumber;
    bool                         _smpPrivateMemory;
    bool                         _smpAllocWide;
    int                          _smpHostCpus;

@@ -190,7 +190,10 @@ void PThread::bind()
    CPU_ZERO( &cpu_set );
    CPU_SET( cpu_id, &cpu_set );
    verbose( "Binding thread " << getMyThreadSafe()->getId() << " to cpu " << cpu_id );
-   pthread_setaffinity_np( _pth, sizeof(cpu_set_t), &cpu_set );
+   int res=pthread_setaffinity_np( _pth, sizeof(cpu_set_t), &cpu_set );
+   if (res!=0) {
+       warning0("pthread set affinity ERROR for thread " << getMyThreadSafe()->getId() << "to cpu "<<cpu_id);
+   }
 
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
