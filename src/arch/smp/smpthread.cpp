@@ -270,7 +270,7 @@ static void decodeAndSetSched(const char *envVar, PThread& pthread) {
         } else
         if (strncmp(start,"DEADLINE",8)==0) {
             sched_policy=SCHED_DEADLINE;
-            end+=6;
+            end+=8;
         } else
         if (strncmp(start,"FIFO",4)==0) {
             sched_policy=SCHED_FIFO;
@@ -294,7 +294,7 @@ static void decodeAndSetSched(const char *envVar, PThread& pthread) {
     }
     if (*end!='\0') {
         if (*end!=',') {
-            fprintf(stderr, "%s='%s': comma expected\n",envVar,value);
+            fprintf(stderr, "%s='%s': comma expected (1)\n",envVar,value);
             return;
         }
         start=end+1;
@@ -306,7 +306,7 @@ static void decodeAndSetSched(const char *envVar, PThread& pthread) {
     }
     if (*end!='\0') {
         if (*end!=',') {
-            fprintf(stderr, "%s='%s': comma expected",envVar,value);
+            fprintf(stderr, "%s='%s': comma expected (2)",envVar,value);
             return;
         }
         start=end+1;
@@ -318,7 +318,7 @@ static void decodeAndSetSched(const char *envVar, PThread& pthread) {
     }
     if (*end!='\0') {
         if (*end!=',') {
-            fprintf(stderr, "%s='%s': comma expected",envVar,value);
+            fprintf(stderr, "%s='%s': comma expected (3)",envVar,value);
             return;
         }
         start=end+1;
