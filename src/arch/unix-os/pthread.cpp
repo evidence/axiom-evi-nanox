@@ -250,10 +250,10 @@ void PThread::setSchedParam(PThreadSchedPolicy pol) {
             break;
         case PThreadSchedPolicy::DEADLINE:
             // dummy :-(
-            // msec
-            p0=100;
-            p1=995;
-            p2=1000;
+            // usec
+            p0=100*1000;
+            p1=995*1000;
+            p2=1000*1000;
             break;
     }
     setSchedParam(pol,p0,p1,p2);
@@ -277,9 +277,9 @@ void PThread::setSchedParam(PThreadSchedPolicy policy, uint64_t p0, uint64_t p1,
             attr.sched_priority=p0;
             break;
         case PThreadSchedPolicy::DEADLINE:
-            attr.sched_runtime=p0*1000*1000;
-            attr.sched_deadline=p1*1000*1000;
-            attr.sched_period=p2*1000*1000;
+            attr.sched_runtime=p0*1000;
+            attr.sched_deadline=p1*1000;
+            attr.sched_period=p2*1000;
             break;
     }
     fprintf(stderr,"SCHED: calling pthread_setschedparam()... (instance=%p tid=0x%08x policy=%d p0=%ld p1=%ld p2=%ld errno=%d)\n",this,mytid,policy,p0,p1,p2,errno);

@@ -251,6 +251,7 @@ static void decodeAndSetSched(const char *envVar, PThread& pthread) {
     char *value,*start,*end;
     int sched_policy;
     uint64_t p0=0,p1=0,p2=0;
+    int per=0;
 
     value=getenv(envVar);
     if (value==NULL) {
@@ -303,6 +304,15 @@ static void decodeAndSetSched(const char *envVar, PThread& pthread) {
             fprintf(stderr, "%s='%s': unrecognized param value\n",envVar,value);
             return;
         }
+        if (sched_policy==SCHED_DEADLINE) {
+            if (*end=='u'||*end=='m'||*end=='%') {
+                if (*end=='m') p0*=1000;
+                if (*end=='%') per=1;
+                end++;
+            } else {
+                p0*=1000*1000;
+            }
+        }
     }
     if (*end!='\0') {
         if (*end!=',') {
@@ -314,6 +324,14 @@ static void decodeAndSetSched(const char *envVar, PThread& pthread) {
         if (start==end) {
             fprintf(stderr, "%s='%s': unrecognized param value",envVar,value);
             return;
+        }
+        if (sched_policy==SCHED_DEADLINE) {
+            if (*end=='u'||*end=='m') {
+                if (*end=='m') p1*=1000;
+                end++;
+            } else {
+                p1*=1000*1000;
+            }
         }
     }
     if (*end!='\0') {
@@ -327,10 +345,22 @@ static void decodeAndSetSched(const char *envVar, PThread& pthread) {
             fprintf(stderr, "%s='%s': unrecognized param value",envVar,value);
             return;
         }
+        if (sched_policy==SCHED_DEADLINE) {
+            if (*end=='u'||*end=='m') {
+                if (*end=='m') p2*=1000;
+                end++;
+            } else {
+                p2*=1000*1000;
+            }
+        }
     }
     if (*end!='\0') {
         fprintf(stderr, "%s='%s': unexpected chars after parameter",envVar,value);
         return ;
+    }
+
+    if (per) {
+        p0=p0*p2/100;
     }
 
     // SET
