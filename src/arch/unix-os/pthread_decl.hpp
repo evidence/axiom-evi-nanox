@@ -22,6 +22,8 @@
 
 #include "smpprocessor_fwd.hpp"
 #include "taskexecutionexception_decl.hpp"
+#include "system_decl.hpp"
+#include "debug.hpp"
 #include <pthread.h>
 #include <signal.h>
 #include <linux/sched.h>
@@ -53,7 +55,7 @@ namespace nanos {
       public:
          // constructor
          PThread( ext::SMPProcessor * core ) : _core( core ), _pth( ), _tid( 0 ), _stackSize( 0 ) {
-             fprintf(stderr, "PTH new PThread instance=%p\n",this);
+             verbose0("PTH new PThread instance="<<this);
          }
 
          // destructor

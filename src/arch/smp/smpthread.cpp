@@ -225,7 +225,7 @@ SMPMultiThread::SMPMultiThread( WD &w, SMPProcessor *pe,
       unsigned int representingPEsCount, PE **representingPEs ) :
    SMPThread ( w, pe, pe ),
    _current( 0 ) {
-    fprintf(stderr, "TH new SMPMultiThread instance=%p\n",this);
+   verbose0("TH new SMPMultiThread instance="<<this);
    setCurrentWD( w );
    if ( representingPEsCount > 0 ) {
       addThreadsFromPEs( representingPEsCount, representingPEs );
@@ -249,7 +249,7 @@ static void decodeAndSetSched(const char *envVar, PThread& pthread) {
 
     value=getenv(envVar);
     if (value==NULL) {
-        fprintf(stderr,"WARNING '%s' environment variable not found! Not setting scheduler parameters!\n",envVar);
+        warning0("WARNING '"<<envVar<<"' environment variable not found! Not setting scheduler parameters!");
         return;
     }
 
@@ -283,19 +283,19 @@ static void decodeAndSetSched(const char *envVar, PThread& pthread) {
             sched_policy=SCHED_RR;
             end+=2;
         } else {
-            fprintf(stderr,"%s='%s': unrecognized policy name or value\n",envVar,value);
+            warning0(envVar<<"='"<<value<<"': unrecognized policy name or value");
             return;
         }
     }
     if (*end!='\0') {
         if (*end!=',') {
-            fprintf(stderr, "%s='%s': comma expected (1)\n",envVar,value);
+            warning0(envVar<<"='"<<value<<"': comma expected (1)");
             return;
         }
         start=end+1;
         p0=strtol(start,&end,10);
         if (start==end) {
-            fprintf(stderr, "%s='%s': unrecognized param value\n",envVar,value);
+            warning0(envVar<<"='"<<value<<"': unrecognized param value (1)");
             return;
         }
         if (sched_policy==SCHED_DEADLINE) {
@@ -310,13 +310,13 @@ static void decodeAndSetSched(const char *envVar, PThread& pthread) {
     }
     if (*end!='\0') {
         if (*end!=',') {
-            fprintf(stderr, "%s='%s': comma expected (2)",envVar,value);
+            warning0(envVar<<"='"<<value<<"': comma expected (2)");
             return;
         }
         start=end+1;
         p1=strtol(start,&end,10);
         if (start==end) {
-            fprintf(stderr, "%s='%s': unrecognized param value",envVar,value);
+            warning0(envVar<<"='"<<value<<"': unrecognized param value (2)");
             return;
         }
         if (sched_policy==SCHED_DEADLINE) {
@@ -330,13 +330,13 @@ static void decodeAndSetSched(const char *envVar, PThread& pthread) {
     }
     if (*end!='\0') {
         if (*end!=',') {
-            fprintf(stderr, "%s='%s': comma expected (3)",envVar,value);
+            warning0(envVar<<"='"<<value<<"': comma expected (3)");
             return;
         }
         start=end+1;
         p2=strtol(start,&end,10);
         if (start==end) {
-            fprintf(stderr, "%s='%s': unrecognized param value",envVar,value);
+            warning0(envVar<<"='"<<value<<"': unrecognized param value (3)");
             return;
         }
         if (sched_policy==SCHED_DEADLINE) {
@@ -349,7 +349,7 @@ static void decodeAndSetSched(const char *envVar, PThread& pthread) {
         }
     }
     if (*end!='\0') {
-        fprintf(stderr, "%s='%s': unexpected chars after parameter",envVar,value);
+        warning0(envVar<<"='"<<value<<"': unexpected chars after parameter");
         return ;
     }
 
@@ -366,7 +366,7 @@ void SMPThread::initializeDependent( void ) {
     int status;
     char *name;
     name=abi::__cxa_demangle(typeid(this).name(),0,0,&status);
-    fprintf(stderr,"TH SMPThread::initializeDependent() type=%s instance=%p self=0x08%lx \n",name,this,pthread_self());
+    verbose0("TH SMPThread::initializeDependent() type="<<name<<" instance="<<this<<" self=0x"<<std::hex<<pthread_self());
     free(name);
     //if (__sync_fetch_and_add(&MYcounter,1)==0) _pthread.setSchedParam(PThreadSchedPolicy::FIFO);
     //else _pthread.setSchedParam(PThreadSchedPolicy::NORMAL);
@@ -381,7 +381,7 @@ void SMPMultiThread::initializeDependent( void ) {
     int status;
     char *name;
     name=abi::__cxa_demangle(typeid(this).name(),0,0,&status);
-    fprintf(stderr,"TH SMPMultiThread::initializeDependent() type=%s instance=%p self=0x08%lx \n",name,this,pthread_self());
+    debug0("TH SMPMultiThread::initializeDependent() type="<<name<<" instance="<<this<<" self=0x"<<std::hex<<pthread_self());
     free(name);
     //_pthread.setSchedParam(PThreadSchedPolicy::NORMAL);
     decodeAndSetSched("AXIOM_COM_PARAMS",_pthread);

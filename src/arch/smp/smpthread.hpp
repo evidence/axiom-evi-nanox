@@ -50,7 +50,7 @@ namespace ext {
          // constructor
          SMPThread( WD &w, PE *pe, SMPProcessor *core ) :
                BaseThread( sys.getSMPPlugin()->getNewSMPThreadId(), w, pe, NULL ), _useUserThreads( true ), _pthread(core) {
-               fprintf(stderr, "TH new SMPThread instance=%p\n",this);
+               verbose0("TH new SMPThread instance="<<this);
                }
 
          // named parameter idiom

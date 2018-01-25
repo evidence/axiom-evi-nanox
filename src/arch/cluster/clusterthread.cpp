@@ -85,7 +85,7 @@ void ClusterThread::RunningWDQueue::completeWD( void *remoteWdAddr ) {
 
 ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) 
    : BaseThread( (unsigned int) -1, w, pe, parent ), _clusterNode( device ), _lock() {
-    fprintf(stderr, "TH new ClusterThread instance=%p\n",this);
+    verbose0("TH new ClusterThread instance="<<this);
    setCurrentWD( w );
 }
 
@@ -316,7 +316,7 @@ void ClusterThread::initializeDependent( void ) {
     int status;
     char *name;
     name=abi::__cxa_demangle(typeid(this).name(),0,0,&status);
-    fprintf(stderr,"TH ClusterThread::initializeDependent() type=%s instance=%p self=0x08%lx \n",name,this,pthread_self());
+    verbose0("TH ClusterThread::initializeDependent() type="<<name<<" instance="<<this<<" self="<<std::hex<<pthread_self());
     free(name);
 }
 void ClusterThread::switchToNextThread() {}

@@ -98,7 +98,7 @@ void * os_bootthread ( void *arg )
        int status;
        char *name;
        name=abi::__cxa_demangle(typeid(*self).name(),0,0,&status);
-       fprintf(stderr,"PTH new OS pthread (self=0x08%lx tid=0x08%x instance=%p) running type=%s instance=%p\n",pthread_self(),pt->_tid, pt, name, self);
+       verbose0("PTH new OS pthread (self=0x"<<std::hex<<pthread_self()<<" tid=0x"<<(pt->_tid)<<" instance="<<std::dec<<pt<<") running type="<<name<<" instance="<<self);
        free(name);
    }
 
@@ -117,7 +117,7 @@ void PThread::initMain ()
    _pth = pthread_self();
    _tid = gettid();
 
-   fprintf(stderr,"PTH main OS pthread self=0x%08lx tid=0x%08x instance=%p\n", _pth, _tid, this);
+   verbose0("PTH main OS pthread self=0x"<<std::hex<<_pth<<" tid=0x"<<_tid<<"instance="<<std::dec<<this);
 
    if ( pthread_cond_init( &_condWait, NULL ) < 0 )
       fatal( "couldn't create pthread condition wait" );
@@ -150,10 +150,12 @@ void PThread::start ( BaseThread * th )
    if ( pthread_create( &_pth, &attr, os_bootthread, pinfo ) )
       fatal( "Couldn't create thread" );
 
+#ifdef NANOS_DEBUG_ENABLED
    {
        pid_t mytid=_tid;
-       fprintf(stderr,"PTH instance=%p => self=0x%08lx tid=0x%08x %s\n",this,_pth,mytid,mytid==0?"(DANGER tid id ZERO!)":"");
+       verbose0("PTH instance="<<this<<" => self=0x"<<std::hex<<_pth<<" tid=0x"<<mytid<<" "<<(mytid==0?"(DANGER tid is ZERO!)":""));
    }
+#endif
       
    if ( pthread_cond_init( &_condWait, NULL ) < 0 )
       fatal( "Couldn't create pthread condition wait" );
@@ -282,11 +284,11 @@ void PThread::setSchedParam(PThreadSchedPolicy policy, uint64_t p0, uint64_t p1,
             attr.sched_period=p2*1000;
             break;
     }
-    fprintf(stderr,"SCHED: calling pthread_setschedparam()... (instance=%p tid=0x%08x policy=%d p0=%ld p1=%ld p2=%ld errno=%d)\n",this,mytid,policy,p0,p1,p2,errno);
+    verbose0("SCHED: calling pthread_setschedparam()... (instance="<<this<<" tid=0x"<<std::hex<<mytid<<" policy="<<std::dec<<policy<<" p0="<<p0<<" p1="<<p1<<" p2="<<p2);
     if (sched_setattr(mytid,&attr,0)!=0) {
-        fprintf(stderr,"SCHED: pthread_setschedparam() error! (instance=%p tid=0x%08x)\n",this,mytid);
+        warning0("SCHED: pthread_setschedparam() error errno="<<errno<<"! (instance="<<this<<" tid=0x"<<std::hex<<mytid);
     }
-    fprintf(stderr,"SCHED: pthread_setschedparam() OK (instance=%p tid=0x%08x)\n",this,mytid);
+    verbose0("SCHED: pthread_setschedparam() OK (instance="<<this<<" tid=0x"<<std::hex<<mytid);
 }
 
 #ifdef NANOS_RESILIENCY_ENABLED
