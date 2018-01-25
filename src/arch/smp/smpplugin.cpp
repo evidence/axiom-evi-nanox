@@ -899,6 +899,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
    {
       SMPThread &thd = getFirstSMPProcessor()->associateThisThread( untie );
       _workers.push_back( &thd );
+      thd.initializeDependentForMain();
       return thd;
    }
 

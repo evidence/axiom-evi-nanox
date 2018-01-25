@@ -63,6 +63,7 @@ namespace ext {
          void setUseUserThreads( bool value=true ) { _useUserThreads = value; }
 
          virtual void initializeDependent( void );
+         virtual void initializeDependentForMain( void );
          virtual void runDependent ( void );
 
          virtual bool inlineWorkDependent( WD &work );

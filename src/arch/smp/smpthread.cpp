@@ -241,12 +241,6 @@ void SMPMultiThread::addThreadsFromPEs(unsigned int representingPEsCount, PE **r
    }
 }
 
-
-
-
-
-
-
 static void decodeAndSetSched(const char *envVar, PThread& pthread) {
     char *value,*start,*end;
     int sched_policy;
@@ -376,6 +370,10 @@ void SMPThread::initializeDependent( void ) {
     free(name);
     //if (__sync_fetch_and_add(&MYcounter,1)==0) _pthread.setSchedParam(PThreadSchedPolicy::FIFO);
     //else _pthread.setSchedParam(PThreadSchedPolicy::NORMAL);
+    decodeAndSetSched("AXIOM_WRK_PARAMS",_pthread);
+}
+
+void SMPThread::initializeDependentForMain( void ) {
     decodeAndSetSched("AXIOM_WRK_PARAMS",_pthread);
 }
 
