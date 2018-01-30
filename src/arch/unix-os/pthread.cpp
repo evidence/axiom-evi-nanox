@@ -26,7 +26,50 @@
 #include <unistd.h>
 #include <signal.h>
 #include <assert.h>
+#include <linux/sched.h>
+#include <sys/syscall.h>
+#include <sched.h>
+#include <string.h>
+#include <errno.h>
+#include <cxxabi.h>
 
+/*
+ * START linux specific
+ */
+
+#include <sys/syscall.h>
+
+#define gettid() syscall(SYS_gettid)
+
+struct sched_attr {
+	__u32 size;
+
+	__u32 sched_policy;
+	__u64 sched_flags;
+
+	/* SCHED_NORMAL, SCHED_BATCH */
+	__s32 sched_nice;
+
+	/* SCHED_FIFO, SCHED_RR */
+	__u32 sched_priority;
+
+	/* SCHED_DEADLINE (nsec) */
+	__u64 sched_runtime;
+	__u64 sched_deadline;
+	__u64 sched_period;
+ };
+
+static int sched_setattr(pid_t pid, const struct sched_attr *attr, unsigned int flags) {
+	return syscall(SYS_sched_setattr, pid, attr, flags);
+ }
+
+//static int sched_getattr(pid_t pid, struct sched_attr *attr, unsigned int size, unsigned int flags) {
+//	return syscall(SYS_sched_getattr, pid, attr, size, flags);
+// }
+
+/*
+ * END linux specific
+ */
 
 // TODO: detect at configure
 #ifndef PTHREAD_STACK_MIN
@@ -36,12 +79,28 @@
 
 using namespace nanos;
 
+struct thread_info_t {
+    BaseThread *bt;
+    PThread *pt;
+};
+
 void * os_bootthread ( void *arg )
 {
-   BaseThread *self = static_cast<BaseThread *>( arg );
+   struct thread_info_t *info = (struct thread_info_t *)arg ;
+   BaseThread *self = info->bt;
+   PThread *pt=info->pt;
+   free(arg);
 #ifdef NANOS_RESILIENCY_ENABLED
    self->setupSignalHandlers();
 #endif
+   pt->_tid=gettid(); // corsa critica???
+   {
+       int status;
+       char *name;
+       name=abi::__cxa_demangle(typeid(*self).name(),0,0,&status);
+       verbose0("PTH new OS pthread (self=0x"<<std::hex<<pthread_self()<<" tid=0x"<<(pt->_tid)<<" instance="<<std::dec<<pt<<") running type="<<name<<" instance="<<self);
+       free(name);
+   }
 
    self->run();
 
@@ -56,16 +115,21 @@ void * os_bootthread ( void *arg )
 void PThread::initMain ()
 {
    _pth = pthread_self();
+   _tid = gettid();
+
+   verbose0("PTH main OS pthread self=0x"<<std::hex<<_pth<<" tid=0x"<<_tid<<"instance="<<std::dec<<this);
 
    if ( pthread_cond_init( &_condWait, NULL ) < 0 )
       fatal( "couldn't create pthread condition wait" );
 
    if ( pthread_mutex_init(&_mutexWait, NULL) < 0 )
       fatal( "couldn't create pthread mutex wait" );
+
 }
 
 void PThread::start ( BaseThread * th )
 {
+   struct thread_info_t *pinfo=(struct thread_info_t *)malloc(sizeof(struct thread_info_t));
    pthread_attr_t attr;
    pthread_attr_init( &attr );
 
@@ -81,14 +145,24 @@ void PThread::start ( BaseThread * th )
  
    verbose( "Creating thread with " << _stackSize << " bytes of stack size" );
 
-   if ( pthread_create( &_pth, &attr, os_bootthread, th ) )
+   pinfo->bt=th;
+   pinfo->pt=this;
+   if ( pthread_create( &_pth, &attr, os_bootthread, pinfo ) )
       fatal( "Couldn't create thread" );
 
+#ifdef NANOS_DEBUG_ENABLED
+   {
+       pid_t mytid=_tid;
+       verbose0("PTH instance="<<this<<" => self=0x"<<std::hex<<_pth<<" tid=0x"<<mytid<<" "<<(mytid==0?"(DANGER tid is ZERO!)":""));
+   }
+#endif
+      
    if ( pthread_cond_init( &_condWait, NULL ) < 0 )
       fatal( "Couldn't create pthread condition wait" );
 
    if ( pthread_mutex_init(&_mutexWait, NULL) < 0 )
       fatal( "Couldn't create pthread mutex wait" );
+
 }
 
 void PThread::finish ()
@@ -118,7 +192,10 @@ void PThread::bind()
    CPU_ZERO( &cpu_set );
    CPU_SET( cpu_id, &cpu_set );
    verbose( "Binding thread " << getMyThreadSafe()->getId() << " to cpu " << cpu_id );
-   pthread_setaffinity_np( _pth, sizeof(cpu_set_t), &cpu_set );
+   int res=pthread_setaffinity_np( _pth, sizeof(cpu_set_t), &cpu_set );
+   if (res!=0) {
+       warning0("pthread set affinity ERROR for thread " << getMyThreadSafe()->getId() << "to cpu "<<cpu_id);
+   }
 
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
@@ -160,6 +237,59 @@ void PThread::condSignal()
    pthread_cond_signal( &_condWait );
 }
 
+void PThread::setSchedParam(PThreadSchedPolicy pol) {
+    uint64_t p0=0,p1=0,p2=0;
+    switch (pol) {
+        case PThreadSchedPolicy::IDLE:
+            break;
+        case PThreadSchedPolicy::OTHER:
+        case PThreadSchedPolicy::BATCH:
+            p0=0;
+            break;
+        case PThreadSchedPolicy::FIFO:
+        case PThreadSchedPolicy::RR:
+            p0=1;;
+            break;
+        case PThreadSchedPolicy::DEADLINE:
+            // dummy :-(
+            // usec
+            p0=100*1000;
+            p1=995*1000;
+            p2=1000*1000;
+            break;
+    }
+    setSchedParam(pol,p0,p1,p2);
+}
+
+void PThread::setSchedParam(PThreadSchedPolicy policy, uint64_t p0, uint64_t p1, uint64_t p2) {
+    struct sched_attr attr;
+    pid_t mytid=_tid;
+    memset(&attr,0,sizeof(struct sched_attr));
+    attr.size=sizeof(struct sched_attr);
+    attr.sched_policy=policy;
+    switch (policy) {
+        case PThreadSchedPolicy::IDLE:
+            break;
+        case PThreadSchedPolicy::OTHER:
+        case PThreadSchedPolicy::BATCH:
+            attr.sched_nice=p0;
+            break;
+        case PThreadSchedPolicy::FIFO:
+        case PThreadSchedPolicy::RR:
+            attr.sched_priority=p0;
+            break;
+        case PThreadSchedPolicy::DEADLINE:
+            attr.sched_runtime=p0*1000;
+            attr.sched_deadline=p1*1000;
+            attr.sched_period=p2*1000;
+            break;
+    }
+    verbose0("SCHED: calling pthread_setschedparam()... (instance="<<this<<" tid=0x"<<std::hex<<mytid<<" policy="<<std::dec<<policy<<" p0="<<p0<<" p1="<<p1<<" p2="<<p2);
+    if (sched_setattr(mytid,&attr,0)!=0) {
+        warning0("SCHED: pthread_setschedparam() error errno="<<errno<<"! (instance="<<this<<" tid=0x"<<std::hex<<mytid);
+    }
+    verbose0("SCHED: pthread_setschedparam() OK (instance="<<this<<" tid=0x"<<std::hex<<mytid);
+}
 
 #ifdef NANOS_RESILIENCY_ENABLED
 

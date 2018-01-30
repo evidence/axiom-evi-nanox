@@ -54,6 +54,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
                  , _bindingStart( 0 )
                  , _bindingStride( 1 )
                  , _bindThreads( true )
+                 , _useMyCpuNumber( false )
                  , _smpPrivateMemory( false )
                  , _smpAllocWide( false )
                  , _smpHostCpus( 0 )
@@ -96,6 +97,10 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
             "Number of CPUs per socket." );
       cfg.registerArgOption( "cpus-per-socket", "cpus-per-socket" );
 
+      cfg.registerConfigOption( "use-my-cpus-number", NEW Config::IntegerVar( _useMyCpuNumber),
+            "Use my cpus number." );
+      cfg.registerArgOption( "use-my-cpus-number", "use-my-cpus-number" );
+
       cfg.registerConfigOption( "num-sockets", NEW Config::PositiveVar( _numSockets ),
             "Number of sockets available." );
       cfg.registerArgOption( "num-sockets", "num-sockets" );
@@ -119,7 +124,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
             "SMP devices use a private memory area." );
       cfg.registerArgOption( "smp-private-memory", "smp-private-memory" );
       cfg.registerEnvOption( "smp-private-memory", "NX_SMP_PRIVATE_MEMORY" );
-
+     
       cfg.registerConfigOption( "smp-alloc-wide", NEW Config::FlagOption( _smpAllocWide, true ),
             "SMP devices use a private memory area." );
       cfg.registerArgOption( "smp-alloc-wide", "smp-alloc-wide" );
@@ -151,7 +156,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       cfg.registerArgOption( "smp-sync-transfers", "smp-sync-transfers" );
       cfg.registerEnvOption( "smp-sync-transfers", "NX_SMP_SYNC_TRANSFERS" );
    }
-
+   
    void SMPPlugin::init()
    {
       sys.setHostFactory( smpProcessorFactory );
@@ -162,34 +167,50 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       _cpuProcessMask = OS::getProcessAffinity();
       _availableCPUs = OS::getMaxProcessors();
       int available_cpus_by_mask = _cpuSystemMask.size();
+      
+      if (_useMyCpuNumber) {
+          _availableCPUs = _CPUsPerSocket;
 
-      if ( _availableCPUs == 0 ) {
-         if ( available_cpus_by_mask > 0 ) {
-            warning0("SMPPlugin: Unable to detect the number of processors in the system.");
-            warning0("SMPPlugin: Using the value provided by the process cpu mask (" << available_cpus_by_mask << ").");
-            _availableCPUs = available_cpus_by_mask;
-         } else if ( _requestedCPUs > 0 ) {
-            warning0("SMPPlugin: Unable to detect the number of processors in the system and cpu mask not set");
-            warning0("Using the number of requested cpus (" << _requestedCPUs << ").");
-            _availableCPUs = _requestedCPUs;
-         } else {
-            fatal0("SMPPlugin: Unable to detect the number of cpus of the system and --smp-cpus was unset or with a value less than 1.");
-         }
-      }
+          if ( _requestedCPUs > 0 ) { //--smp-cpus flag was set
+              _currentCPUs = _requestedCPUs;
+          } else if ( _requestedCPUs == 0 ) { //no cpus requested through --smp-cpus
+              _currentCPUs = available_cpus_by_mask;
+          } else {
+              fatal0("Invalid number of requested cpus (--smp-cpus)");
+          }
 
-      if ( _requestedCPUs > 0 ) { //--smp-cpus flag was set
-         if ( _requestedCPUs > available_cpus_by_mask ) {
-            warning0("SMPPlugin: Requested number of cpus is greater than the cpu mask provided.");
-            warning0("Using the value specified by the mask (" << available_cpus_by_mask << ").");
-            _currentCPUs = available_cpus_by_mask;
-         } else {
-            _currentCPUs = _requestedCPUs;
-         }
-      } else if ( _requestedCPUs == 0 ) { //no cpus requested through --smp-cpus
-         _currentCPUs = available_cpus_by_mask;
+          warning0("Forced num cpus to (" << _requestedCPUs << ").");
+
       } else {
-         fatal0("Invalid number of requested cpus (--smp-cpus)");
+          if ( _availableCPUs == 0 ) {
+              if ( available_cpus_by_mask > 0 ) {
+                  warning0("SMPPlugin: Unable to detect the number of processors in the system.");
+                  warning0("SMPPlugin: Using the value provided by the process cpu mask (" << available_cpus_by_mask << ").");
+                  _availableCPUs = available_cpus_by_mask;
+              } else if ( _requestedCPUs > 0 ) {
+                  warning0("SMPPlugin: Unable to detect the number of processors in the system and cpu mask not set");
+                  warning0("Using the number of requested cpus (" << _requestedCPUs << ").");
+                  _availableCPUs = _requestedCPUs;
+              } else {
+                  fatal0("SMPPlugin: Unable to detect the number of cpus of the system and --smp-cpus was unset or with a value less than 1.");
+              }
+          }
+
+          if ( _requestedCPUs > 0 ) { //--smp-cpus flag was set
+              if ( _requestedCPUs > available_cpus_by_mask ) {
+                  warning0("SMPPlugin: Requested number of cpus is greater than the cpu mask provided.");
+                  warning0("Using the value specified by the mask (" << available_cpus_by_mask << ").");
+                  _currentCPUs = available_cpus_by_mask;
+              } else {
+                  _currentCPUs = _requestedCPUs;
+              }
+          } else if ( _requestedCPUs == 0 ) { //no cpus requested through --smp-cpus
+              _currentCPUs = available_cpus_by_mask;
+          } else {
+              fatal0("Invalid number of requested cpus (--smp-cpus)");
+          }
       }
+
       verbose0("requested cpus: " << _requestedCPUs << " available: " << _availableCPUs << " to be used: " << _currentCPUs);
 
       //! \note Fill _bindings vector with the active CPUs first, then the not active
@@ -236,6 +257,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
          SMPProcessor *cpu;
          bool active = ( (count < _currentCPUs) && _cpuProcessMask.isSet(*it) );
+         if (_useMyCpuNumber>0) active=true;
          unsigned numaNode;
 
          // If this PE can't be seen by hwloc (weird case in Altix 2, for instance)
@@ -877,6 +899,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
    {
       SMPThread &thd = getFirstSMPProcessor()->associateThisThread( untie );
       _workers.push_back( &thd );
+      thd.initializeDependentForMain();
       return thd;
    }
 

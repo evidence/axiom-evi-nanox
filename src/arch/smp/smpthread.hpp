@@ -32,14 +32,16 @@
 
 namespace nanos {
 namespace ext {
+         
    class SMPMultiThread;
 
    class SMPThread : public BaseThread
    {
       private:
          bool           _useUserThreads;
+   protected:
          PThread        _pthread;
-
+   private:
          // disable copy constructor and assignment operator
          SMPThread( const SMPThread &th );
          const SMPThread & operator= ( const SMPThread &th );
@@ -47,7 +49,9 @@ namespace ext {
       public:
          // constructor
          SMPThread( WD &w, PE *pe, SMPProcessor *core ) :
-               BaseThread( sys.getSMPPlugin()->getNewSMPThreadId(), w, pe, NULL ), _useUserThreads( true ), _pthread(core) {}
+               BaseThread( sys.getSMPPlugin()->getNewSMPThreadId(), w, pe, NULL ), _useUserThreads( true ), _pthread(core) {
+               verbose0("TH new SMPThread instance="<<this);
+               }
 
          // named parameter idiom
          SMPThread & stackSize( size_t size );
@@ -58,7 +62,8 @@ namespace ext {
 
          void setUseUserThreads( bool value=true ) { _useUserThreads = value; }
 
-         virtual void initializeDependent( void ) {}
+         virtual void initializeDependent( void );
+         virtual void initializeDependentForMain( void );
          virtual void runDependent ( void );
 
          virtual bool inlineWorkDependent( WD &work );
@@ -137,6 +142,8 @@ namespace ext {
             _current = ( _current == ( _threads.size() - 1 ) ) ? 0 : _current + 1;
             return _threads[ _current ];
          }
+
+         virtual void initializeDependent( void );
 
          unsigned int getNumThreads() const
          {
