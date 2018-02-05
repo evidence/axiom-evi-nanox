@@ -249,7 +249,7 @@ static void decodeAndSetSched(const char *envVar, PThread& pthread) {
 
     value=getenv(envVar);
     if (value==NULL) {
-        warning0("WARNING '"<<envVar<<"' environment variable not found! Not setting scheduler parameters!");
+        verbose0("WARNING '"<<envVar<<"' environment variable not found! Not setting scheduler parameters!");
         return;
     }
 
