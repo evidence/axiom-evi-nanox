@@ -553,7 +553,7 @@ void GASNetAPI::amPut( gasnet_token_t token,
    if ( it != copies.end() ) {
       it->second += len;
    } else {
-      it = copies.insert( std::make_pair < void *, std::size_t > ( realTag, len ) ).first;
+      it = copies.insert( std::make_pair( realTag, len ) ).first;
    }
    if ( it->second == totalLen )
    {
